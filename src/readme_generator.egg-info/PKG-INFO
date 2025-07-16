@@ -1,0 +1,27 @@
+Metadata-Version: 2.4
+Name: readme-generator
+Version: 0.1.0
+Summary: A command-line tool that automatically generates README files for Python projects
+Home-page: https://github.com/yourusername/readme-generator
+Author: Your Name
+Author-email: Your Name <your.email@example.com>
+License: MIT
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: tomli>=2.0.0; python_version < "3.11"
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: black>=22.0.0; extra == "dev"
+Requires-Dist: flake8>=5.0.0; extra == "dev"
+Requires-Dist: mypy>=1.0.0; extra == "dev"
+Dynamic: author
+Dynamic: home-page
+Dynamic: requires-python
+
+# SYSC4918
