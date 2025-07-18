@@ -1,0 +1,1094 @@
+{
+  "project_name": "",
+  "root_path": ".",
+  "files": [
+    {
+      "filepath": "concat.py",
+      "classes": [],
+      "functions": [],
+      "imports": [
+        "os"
+      ],
+      "docstring": null,
+      "comments": [
+        "# Clear the output file before starting",
+        "# Skip directories named \"test\" at any level",
+        "# Check for all required file extensions"
+      ],
+      "lines_of_code": 19
+    },
+    {
+      "filepath": "src/main.py",
+      "classes": [
+        {
+          "name": "FunctionInfo",
+          "docstring": null,
+          "methods": [],
+          "inheritance": [],
+          "line_number": 11,
+          "decorators": [
+            "dataclass"
+          ]
+        },
+        {
+          "name": "ClassInfo",
+          "docstring": null,
+          "methods": [],
+          "inheritance": [],
+          "line_number": 21,
+          "decorators": [
+            "dataclass"
+          ]
+        },
+        {
+          "name": "FileInfo",
+          "docstring": null,
+          "methods": [],
+          "inheritance": [],
+          "line_number": 30,
+          "decorators": [
+            "dataclass"
+          ]
+        },
+        {
+          "name": "ProjectInfo",
+          "docstring": null,
+          "methods": [],
+          "inheritance": [],
+          "line_number": 40,
+          "decorators": [
+            "dataclass"
+          ]
+        },
+        {
+          "name": "PythonProjectParser",
+          "docstring": null,
+          "methods": [
+            {
+              "name": "__init__",
+              "docstring": null,
+              "parameters": [
+                "self",
+                "project_path: str"
+              ],
+              "return_annotation": null,
+              "line_number": 50,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "parse_project",
+              "docstring": "Main method to parse entire Python project",
+              "parameters": [
+                "self"
+              ],
+              "return_annotation": "ProjectInfo",
+              "line_number": 54,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "_find_python_files",
+              "docstring": "Find all Python files in the project",
+              "parameters": [
+                "self"
+              ],
+              "return_annotation": "<ast.Subscript object at 0x7d2c4c1a14d0>",
+              "line_number": 88,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "_parse_python_file",
+              "docstring": "Parse a single Python file using AST",
+              "parameters": [
+                "self",
+                "file_path: Path"
+              ],
+              "return_annotation": "FileInfo",
+              "line_number": 104,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "_extract_classes",
+              "docstring": "Extract class information from AST",
+              "parameters": [
+                "self",
+                "tree: ast.AST"
+              ],
+              "return_annotation": "<ast.Subscript object at 0x7d2c4c1e1990>",
+              "line_number": 130,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "_extract_functions",
+              "docstring": "Extract top-level function information from AST",
+              "parameters": [
+                "self",
+                "tree: ast.AST"
+              ],
+              "return_annotation": "<ast.Subscript object at 0x7d2c4c1e3350>",
+              "line_number": 162,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "_extract_function_info",
+              "docstring": "Extract detailed function information",
+              "parameters": [
+                "self",
+                "node: ast.FunctionDef"
+              ],
+              "return_annotation": "FunctionInfo",
+              "line_number": 176,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "_extract_imports",
+              "docstring": "Extract import statements",
+              "parameters": [
+                "self",
+                "tree: ast.AST"
+              ],
+              "return_annotation": "<ast.Subscript object at 0x7d2c4c1a6d90>",
+              "line_number": 201,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "_extract_module_docstring",
+              "docstring": "Extract module-level docstring",
+              "parameters": [
+                "self",
+                "tree: ast.AST"
+              ],
+              "return_annotation": "<ast.Subscript object at 0x7d2c4c1a6310>",
+              "line_number": 216,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "_extract_comments",
+              "docstring": "Extract comments from source code",
+              "parameters": [
+                "self",
+                "content: str"
+              ],
+              "return_annotation": "<ast.Subscript object at 0x7d2c4c1a4b50>",
+              "line_number": 220,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "_extract_dependencies",
+              "docstring": "Extract dependencies from requirements.txt and setup.py",
+              "parameters": [
+                "self"
+              ],
+              "return_annotation": "<ast.Subscript object at 0x7d2c4c1f4b50>",
+              "line_number": 229,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "_find_entry_points",
+              "docstring": "Find main entry points in the project",
+              "parameters": [
+                "self",
+                "parsed_files: <ast.Subscript object at 0x7d2c4c1f4f90>"
+              ],
+              "return_annotation": "<ast.Subscript object at 0x7d2c4c1f7410>",
+              "line_number": 262,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "_build_project_structure",
+              "docstring": "Build a tree representation of project structure",
+              "parameters": [
+                "self"
+              ],
+              "return_annotation": "<ast.Subscript object at 0x7d2c4c202490>",
+              "line_number": 283,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "_extract_metadata",
+              "docstring": "Extract project metadata",
+              "parameters": [
+                "self"
+              ],
+              "return_annotation": "<ast.Subscript object at 0x7d2c4c2099d0>",
+              "line_number": 307,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "_get_decorator_name",
+              "docstring": "Extract decorator name from AST node",
+              "parameters": [
+                "self",
+                "decorator: ast.expr"
+              ],
+              "return_annotation": "str",
+              "line_number": 334,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "_get_annotation_string",
+              "docstring": "Convert annotation AST node to string",
+              "parameters": [
+                "self",
+                "annotation: ast.expr"
+              ],
+              "return_annotation": "str",
+              "line_number": 343,
+              "is_async": false,
+              "decorators": []
+            },
+            {
+              "name": "save_to_json",
+              "docstring": "Save project information to JSON file",
+              "parameters": [
+                "self",
+                "project_info: ProjectInfo",
+                "output_path: str"
+              ],
+              "return_annotation": null,
+              "line_number": 352,
+              "is_async": false,
+              "decorators": []
+            }
+          ],
+          "inheritance": [],
+          "line_number": 49,
+          "decorators": []
+        }
+      ],
+      "functions": [
+        {
+          "name": "main",
+          "docstring": null,
+          "parameters": [],
+          "return_annotation": null,
+          "line_number": 365,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "__init__",
+          "docstring": null,
+          "parameters": [
+            "self",
+            "project_path: str"
+          ],
+          "return_annotation": null,
+          "line_number": 50,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "parse_project",
+          "docstring": "Main method to parse entire Python project",
+          "parameters": [
+            "self"
+          ],
+          "return_annotation": "ProjectInfo",
+          "line_number": 54,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "_find_python_files",
+          "docstring": "Find all Python files in the project",
+          "parameters": [
+            "self"
+          ],
+          "return_annotation": "<ast.Subscript object at 0x7d2c4c1a14d0>",
+          "line_number": 88,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "_parse_python_file",
+          "docstring": "Parse a single Python file using AST",
+          "parameters": [
+            "self",
+            "file_path: Path"
+          ],
+          "return_annotation": "FileInfo",
+          "line_number": 104,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "_extract_classes",
+          "docstring": "Extract class information from AST",
+          "parameters": [
+            "self",
+            "tree: ast.AST"
+          ],
+          "return_annotation": "<ast.Subscript object at 0x7d2c4c1e1990>",
+          "line_number": 130,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "_extract_functions",
+          "docstring": "Extract top-level function information from AST",
+          "parameters": [
+            "self",
+            "tree: ast.AST"
+          ],
+          "return_annotation": "<ast.Subscript object at 0x7d2c4c1e3350>",
+          "line_number": 162,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "_extract_function_info",
+          "docstring": "Extract detailed function information",
+          "parameters": [
+            "self",
+            "node: ast.FunctionDef"
+          ],
+          "return_annotation": "FunctionInfo",
+          "line_number": 176,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "_extract_imports",
+          "docstring": "Extract import statements",
+          "parameters": [
+            "self",
+            "tree: ast.AST"
+          ],
+          "return_annotation": "<ast.Subscript object at 0x7d2c4c1a6d90>",
+          "line_number": 201,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "_extract_module_docstring",
+          "docstring": "Extract module-level docstring",
+          "parameters": [
+            "self",
+            "tree: ast.AST"
+          ],
+          "return_annotation": "<ast.Subscript object at 0x7d2c4c1a6310>",
+          "line_number": 216,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "_extract_comments",
+          "docstring": "Extract comments from source code",
+          "parameters": [
+            "self",
+            "content: str"
+          ],
+          "return_annotation": "<ast.Subscript object at 0x7d2c4c1a4b50>",
+          "line_number": 220,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "_extract_dependencies",
+          "docstring": "Extract dependencies from requirements.txt and setup.py",
+          "parameters": [
+            "self"
+          ],
+          "return_annotation": "<ast.Subscript object at 0x7d2c4c1f4b50>",
+          "line_number": 229,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "_find_entry_points",
+          "docstring": "Find main entry points in the project",
+          "parameters": [
+            "self",
+            "parsed_files: <ast.Subscript object at 0x7d2c4c1f4f90>"
+          ],
+          "return_annotation": "<ast.Subscript object at 0x7d2c4c1f7410>",
+          "line_number": 262,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "_build_project_structure",
+          "docstring": "Build a tree representation of project structure",
+          "parameters": [
+            "self"
+          ],
+          "return_annotation": "<ast.Subscript object at 0x7d2c4c202490>",
+          "line_number": 283,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "_extract_metadata",
+          "docstring": "Extract project metadata",
+          "parameters": [
+            "self"
+          ],
+          "return_annotation": "<ast.Subscript object at 0x7d2c4c2099d0>",
+          "line_number": 307,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "_get_decorator_name",
+          "docstring": "Extract decorator name from AST node",
+          "parameters": [
+            "self",
+            "decorator: ast.expr"
+          ],
+          "return_annotation": "str",
+          "line_number": 334,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "_get_annotation_string",
+          "docstring": "Convert annotation AST node to string",
+          "parameters": [
+            "self",
+            "annotation: ast.expr"
+          ],
+          "return_annotation": "str",
+          "line_number": 343,
+          "is_async": false,
+          "decorators": []
+        },
+        {
+          "name": "save_to_json",
+          "docstring": "Save project information to JSON file",
+          "parameters": [
+            "self",
+            "project_info: ProjectInfo",
+            "output_path: str"
+          ],
+          "return_annotation": null,
+          "line_number": 352,
+          "is_async": false,
+          "decorators": []
+        }
+      ],
+      "imports": [
+        "os",
+        "ast",
+        "json",
+        "re",
+        "pathlib.Path",
+        "typing.Dict",
+        "typing.List",
+        "typing.Any",
+        "typing.Optional",
+        "dataclasses.dataclass",
+        "dataclasses.asdict",
+        "argparse"
+      ],
+      "docstring": null,
+      "comments": [
+        "# Find Python files",
+        "# Parse each file",
+        "# Extract project metadata",
+        "# Skip common non-source directories",
+        "# Skip files in excluded directories",
+        "# Parse AST",
+        "# Extract components",
+        "# Extract methods",
+        "# Extract inheritance",
+        "# Skip methods (functions inside classes)",
+        "# Extract parameters",
+        "# Extract return annotation",
+        "# Check requirements.txt",
+        "# Remove version specifiers",
+        "# Check setup.py for install_requires",
+        "# Simple regex to find install_requires",
+        "# Look for common entry point patterns",
+        "# Check for main.py",
+        "# Check for __main__.py",
+        "# Check for if __name__ == \"__main__\": pattern",
+        "# Add file info",
+        "# Check for setup.py",
+        "# Could extract name, version, description, etc.",
+        "# Check for pyproject.toml",
+        "# Check for README files",
+        "# Check for license",
+        "# Convert dataclasses to dict",
+        "# Parse project",
+        "# Save to JSON",
+        "# Print summary"
+      ],
+      "lines_of_code": 323
+    }
+  ],
+  "dependencies": [
+    "rich",
+    "sphinx",
+    "flake8",
+    "tomli",
+    "tiktoken",
+    "mypy",
+    "pytest-cov",
+    "requests",
+    "pydantic",
+    "pathspec",
+    "jinja2",
+    "pytest",
+    "openai",
+    "google-generativeai",
+    "black",
+    "click",
+    "anthropic",
+    "sphinx-rtd-theme",
+    "python-dotenv"
+  ],
+  "entry_points": [
+    "src/main.py",
+    "src/main.py::main"
+  ],
+  "project_structure": {
+    "concat.py": {
+      "type": "file",
+      "size": 863,
+      "extension": ".py"
+    },
+    "README.md": {
+      "type": "file",
+      "size": 10,
+      "extension": ".md"
+    },
+    "pyproject.toml": {
+      "type": "file",
+      "size": 1061,
+      "extension": ".toml"
+    },
+    "data.txt": {
+      "type": "file",
+      "size": 75341,
+      "extension": ".txt"
+    },
+    "requirements.txt": {
+      "type": "file",
+      "size": 515,
+      "extension": ".txt"
+    },
+    "src": {
+      "main.py": {
+        "type": "file",
+        "size": 14329,
+        "extension": ".py"
+      }
+    },
+    ".git": {
+      "config": {
+        "type": "file",
+        "size": 413,
+        "extension": ""
+      },
+      "FETCH_HEAD": {
+        "type": "file",
+        "size": 103,
+        "extension": ""
+      },
+      "HEAD": {
+        "type": "file",
+        "size": 21,
+        "extension": ""
+      },
+      "description": {
+        "type": "file",
+        "size": 73,
+        "extension": ""
+      },
+      "packed-refs": {
+        "type": "file",
+        "size": 112,
+        "extension": ""
+      },
+      "COMMIT_EDITMSG": {
+        "type": "file",
+        "size": 2,
+        "extension": ""
+      },
+      "index": {
+        "type": "file",
+        "size": 3547,
+        "extension": ""
+      },
+      "logs": {
+        "HEAD": {
+          "type": "file",
+          "size": 408,
+          "extension": ""
+        },
+        "refs": {
+          "heads": {
+            "main": {
+              "type": "file",
+              "size": 408,
+              "extension": ""
+            }
+          },
+          "remotes": {
+            "origin": {
+              "HEAD": {
+                "type": "file",
+                "size": 256,
+                "extension": ""
+              },
+              "main": {
+                "type": "file",
+                "size": 157,
+                "extension": ""
+              }
+            }
+          }
+        }
+      },
+      "info": {
+        "exclude": {
+          "type": "file",
+          "size": 240,
+          "extension": ""
+        }
+      },
+      "hooks": {
+        "sendemail-validate.sample": {
+          "type": "file",
+          "size": 2308,
+          "extension": ".sample"
+        },
+        "post-merge": {
+          "type": "file",
+          "size": 354,
+          "extension": ""
+        },
+        "fsmonitor-watchman.sample": {
+          "type": "file",
+          "size": 4726,
+          "extension": ".sample"
+        },
+        "pre-push": {
+          "type": "file",
+          "size": 350,
+          "extension": ""
+        },
+        "pre-push.sample": {
+          "type": "file",
+          "size": 1374,
+          "extension": ".sample"
+        },
+        "pre-commit.sample": {
+          "type": "file",
+          "size": 1649,
+          "extension": ".sample"
+        },
+        "pre-applypatch.sample": {
+          "type": "file",
+          "size": 424,
+          "extension": ".sample"
+        },
+        "pre-merge-commit.sample": {
+          "type": "file",
+          "size": 416,
+          "extension": ".sample"
+        },
+        "post-commit": {
+          "type": "file",
+          "size": 356,
+          "extension": ""
+        },
+        "pre-receive.sample": {
+          "type": "file",
+          "size": 544,
+          "extension": ".sample"
+        },
+        "applypatch-msg.sample": {
+          "type": "file",
+          "size": 478,
+          "extension": ".sample"
+        },
+        "push-to-checkout.sample": {
+          "type": "file",
+          "size": 2783,
+          "extension": ".sample"
+        },
+        "update.sample": {
+          "type": "file",
+          "size": 3650,
+          "extension": ".sample"
+        },
+        "post-update.sample": {
+          "type": "file",
+          "size": 189,
+          "extension": ".sample"
+        },
+        "pre-rebase.sample": {
+          "type": "file",
+          "size": 4898,
+          "extension": ".sample"
+        },
+        "commit-msg.sample": {
+          "type": "file",
+          "size": 896,
+          "extension": ".sample"
+        },
+        "post-checkout": {
+          "type": "file",
+          "size": 360,
+          "extension": ""
+        },
+        "prepare-commit-msg.sample": {
+          "type": "file",
+          "size": 1492,
+          "extension": ".sample"
+        }
+      },
+      "refs": {
+        "heads": {
+          "main": {
+            "type": "file",
+            "size": 41,
+            "extension": ""
+          }
+        },
+        "remotes": {
+          "origin": {
+            "HEAD": {
+              "type": "file",
+              "size": 30,
+              "extension": ""
+            },
+            "main": {
+              "type": "file",
+              "size": 41,
+              "extension": ""
+            }
+          }
+        }
+      },
+      "objects": {
+        "01": {
+          "c95c7b86d7e9b2fac427a5273116cc237a2b0e": {
+            "type": "file",
+            "size": 220,
+            "extension": ""
+          },
+          "0e42fd08b4e560db051a2bb7bf6134452097a0": {
+            "type": "file",
+            "size": 7098,
+            "extension": ""
+          }
+        },
+        "35": {
+          "5b6a78663a866cf99a00a684f34385c8a0fc11": {
+            "type": "file",
+            "size": 12341,
+            "extension": ""
+          }
+        },
+        "fd": {
+          "82be8d4f80cf1c4a4befb6e6267351cd3a1894": {
+            "type": "file",
+            "size": 126,
+            "extension": ""
+          }
+        },
+        "pack": {
+          "pack-16c75a87fb21b7e2b0e0052f89ece0360353e180.pack": {
+            "type": "file",
+            "size": 879,
+            "extension": ".pack"
+          },
+          "pack-16c75a87fb21b7e2b0e0052f89ece0360353e180.idx": {
+            "type": "file",
+            "size": 1156,
+            "extension": ".idx"
+          },
+          "pack-16c75a87fb21b7e2b0e0052f89ece0360353e180.rev": {
+            "type": "file",
+            "size": 64,
+            "extension": ".rev"
+          }
+        },
+        "3a": {
+          "9c88aad4627900b057e3f9e8cf1eb9217adc4f": {
+            "type": "file",
+            "size": 3792,
+            "extension": ""
+          }
+        },
+        "8b": {
+          "137891791fe96927ad78e64b0aad7bded08bdc": {
+            "type": "file",
+            "size": 16,
+            "extension": ""
+          },
+          "ebc06b78d4673abac926c99dc7a595445039c5": {
+            "type": "file",
+            "size": 324,
+            "extension": ""
+          }
+        },
+        "9b": {
+          "bee91ecb5c0f6a6e293913b053f29b286dceae": {
+            "type": "file",
+            "size": 2042,
+            "extension": ""
+          }
+        },
+        "49": {
+          "c9528ccb57bb1e2864e527d8ab538c2c16e924": {
+            "type": "file",
+            "size": 4004,
+            "extension": ""
+          }
+        },
+        "85": {
+          "6f75a0a89db4024decd22af883394b4f72a816": {
+            "type": "file",
+            "size": 114,
+            "extension": ""
+          },
+          "b87ee7b097ebf2744a2157d6c7e342e9d82f03": {
+            "type": "file",
+            "size": 7826,
+            "extension": ""
+          }
+        },
+        "b4": {
+          "ae9195aa3ad90055abf8fd7811a9f6652735a3": {
+            "type": "file",
+            "size": 4724,
+            "extension": ""
+          }
+        },
+        "9a": {
+          "08fbba11cce915c4bc1c664af47bb09da30918": {
+            "type": "file",
+            "size": 5196,
+            "extension": ""
+          }
+        },
+        "38": {
+          "02d28525c09ff558c1b71aea8fbbd6bb9e5a0c": {
+            "type": "file",
+            "size": 28,
+            "extension": ""
+          }
+        },
+        "69": {
+          "5dd6d66a917d9380f4b6f73eee33dcadcb622a": {
+            "type": "file",
+            "size": 240,
+            "extension": ""
+          },
+          "71a6fea99a2bfde3943d77e5ba3a5f827da455": {
+            "type": "file",
+            "size": 4788,
+            "extension": ""
+          }
+        },
+        "db": {
+          "1af37032cec3c02be97b95353c15bef137cbb5": {
+            "type": "file",
+            "size": 314,
+            "extension": ""
+          }
+        },
+        "70": {
+          "4b02af8144bbdc9dd2923476043c46db26ce6f": {
+            "type": "file",
+            "size": 434,
+            "extension": ""
+          }
+        },
+        "fc": {
+          "270be5689bffc3713cec12fa545a5809c7748d": {
+            "type": "file",
+            "size": 8521,
+            "extension": ""
+          }
+        },
+        "be": {
+          "6904541f4a01432140da84194734e64e955e5a": {
+            "type": "file",
+            "size": 160,
+            "extension": ""
+          },
+          "66fe6ada885b5ee61dfcea9813b86b5ff305a6": {
+            "type": "file",
+            "size": 9490,
+            "extension": ""
+          }
+        },
+        "e9": {
+          "b7f2c134fd1d221df67488cbd6c0827a9926f1": {
+            "type": "file",
+            "size": 65,
+            "extension": ""
+          }
+        },
+        "eb": {
+          "c4b6ccf4da32e261bd7fd98db7a3494854bc43": {
+            "type": "file",
+            "size": 232,
+            "extension": ""
+          }
+        },
+        "e4": {
+          "7d86008c8438a0b2e395ad17277f00aee90cf2": {
+            "type": "file",
+            "size": 35,
+            "extension": ""
+          }
+        },
+        "1e": {
+          "0f1cb0eb4b3e20ed79bf19961e7b82a0d0b412": {
+            "type": "file",
+            "size": 106,
+            "extension": ""
+          }
+        },
+        "1a": {
+          "ef27c72abe6d4162cda17080e912dc82686508": {
+            "type": "file",
+            "size": 6197,
+            "extension": ""
+          }
+        },
+        "dd": {
+          "6ef1e6b39a49e84a80843be468361b914d2329": {
+            "type": "file",
+            "size": 130,
+            "extension": ""
+          }
+        },
+        "e1": {
+          "ad649f42fc3fe8e66ca15625fb78281ccf6920": {
+            "type": "file",
+            "size": 229,
+            "extension": ""
+          }
+        },
+        "ec": {
+          "c91c3a5a36affa3f7a9a8e081ac83c913e6b1a": {
+            "type": "file",
+            "size": 606,
+            "extension": ""
+          }
+        },
+        "d8": {
+          "5859c2e8879ff26c4c0fc293a6f13eb7d5910e": {
+            "type": "file",
+            "size": 10523,
+            "extension": ""
+          }
+        },
+        "90": {
+          "d3693d53643ddf321133a39e0e986560079917": {
+            "type": "file",
+            "size": 38125,
+            "extension": ""
+          }
+        },
+        "40": {
+          "f6bf6f2b4555cd2ff6807d7a1a69773cf65217": {
+            "type": "file",
+            "size": 91,
+            "extension": ""
+          }
+        },
+        "f5": {
+          "c8c601f63f6a38f309e68d4274358e82eb881f": {
+            "type": "file",
+            "size": 517,
+            "extension": ""
+          }
+        },
+        "23": {
+          "2bb316f34ba55d7daa049d05f534fad1f53435": {
+            "type": "file",
+            "size": 285,
+            "extension": ""
+          }
+        },
+        "ac": {
+          "3004521a2b3684866780fd05101520240b8723": {
+            "type": "file",
+            "size": 10629,
+            "extension": ""
+          }
+        },
+        "e6": {
+          "9de29bb2d1d6434b8b29ae775ad8c2e48c5391": {
+            "type": "file",
+            "size": 15,
+            "extension": ""
+          }
+        },
+        "27": {
+          "7c128f676f952026f8bf2ba06b0108c8a19a5e": {
+            "type": "file",
+            "size": 11657,
+            "extension": ""
+          }
+        },
+        "d1": {
+          "93cf3b914885004ab9f3f401008c947dfe32d9": {
+            "type": "file",
+            "size": 4061,
+            "extension": ""
+          }
+        },
+        "83": {
+          "0f673a1562b601ec8d4c365da5cdc9f366c710": {
+            "type": "file",
+            "size": 1234,
+            "extension": ""
+          }
+        },
+        "4a": {
+          "7436f4aacd2818618258a2255a5b20a58430e4": {
+            "type": "file",
+            "size": 54,
+            "extension": ""
+          }
+        }
+      },
+      "lfs": {
+        "cache": {
+          "locks": {
+            "refs": {
+              "heads": {
+                "main": {
+                  "verifiable": {
+                    "type": "file",
+                    "size": 24,
+                    "extension": ""
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "has_pyproject_toml": true,
+    "existing_readme": [
+      "README.md"
+    ]
+  }
+}

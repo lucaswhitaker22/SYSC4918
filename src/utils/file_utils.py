@@ -1,749 +1,432 @@
-# src/utils/file_utils.py
+"""
+File system utilities for safe and efficient file operations.
 
-import ast
+This module provides functions for reading files, detecting encodings,
+traversing directories, and handling various file types commonly found
+in Python projects.
+"""
+
 import os
 import re
+import chardet
 import mimetypes
 from pathlib import Path
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Optional, Dict, Generator, Set, Tuple
+from dataclasses import dataclass
+import logging
 
-try:
-    import tiktoken
-except ImportError:
-    tiktoken = None
+logger = logging.getLogger(__name__)
+
+# Common file patterns to ignore
+IGNORE_PATTERNS = {
+    # Version control
+    '.git', '.svn', '.hg', '.bzr',
+    # Python cache
+    '__pycache__', '*.pyc', '*.pyo', '*.pyd',
+    # Virtual environments
+    'venv', 'env', '.venv', '.env', 'virtualenv',
+    # IDE files
+    '.vscode', '.idea', '*.swp', '*.swo',
+    # Build artifacts
+    'build', 'dist', '*.egg-info', '.tox',
+    # OS files
+    '.DS_Store', 'Thumbs.db',
+    # Temporary files
+    '*.tmp', '*.temp', '*.log'
+}
+
+# Python file extensions
+PYTHON_EXTENSIONS = {'.py', '.pyw', '.pyx', '.pyi'}
+
+# Configuration file patterns
+CONFIG_FILES = {
+    'setup.py', 'setup.cfg', 'pyproject.toml', 'requirements.txt',
+    'requirements-dev.txt', 'Pipfile', 'Pipfile.lock', 'poetry.lock',
+    'tox.ini', 'pytest.ini', '.flake8', '.pylintrc', 'mypy.ini',
+    '.gitignore', '.gitattributes', 'MANIFEST.in', 'LICENSE', 'README.md',
+    'README.rst', 'README.txt', 'CHANGELOG.md', 'CHANGELOG.rst'
+}
 
 
-def safe_read_file(filepath: str) -> Optional[str]:
-    """
-    Safely reads a file's content with comprehensive error handling.
+@dataclass
+class FileInfo:
+    """Information about a file."""
+    path: str
+    size: int
+    encoding: Optional[str] = None
+    mime_type: Optional[str] = None
+    is_text: bool = False
+    is_python: bool = False
+    is_config: bool = False
+
+
+class FileReader:
+    """Enhanced file reader with encoding detection and error handling."""
     
-    This function attempts to read a file using multiple encoding strategies
-    to handle various file encodings commonly found in Python projects.
+    def __init__(self, max_file_size: int = 10 * 1024 * 1024):  # 10MB default
+        self.max_file_size = max_file_size
+        self._encoding_cache: Dict[str, str] = {}
     
-    Args:
-        filepath: The path to the file to read.
-    
-    Returns:
-        The file content as a string if successful, None otherwise.
-    """
-    if not filepath or not os.path.exists(filepath):
-        return None
-    
-    # Try different encodings in order of preference
-    encodings = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252']
-    
-    for encoding in encodings:
+    def read_file(self, file_path: str) -> Optional[str]:
+        """
+        Read a file with automatic encoding detection.
+        
+        Args:
+            file_path: Path to the file to read
+            
+        Returns:
+            File content as string, or None if reading fails
+        """
         try:
-            with open(filepath, 'r', encoding=encoding) as f:
+            path = Path(file_path)
+            if not path.exists() or not path.is_file():
+                logger.warning(f"File not found: {file_path}")
+                return None
+                
+            if path.stat().st_size > self.max_file_size:
+                logger.warning(f"File too large: {file_path} ({path.stat().st_size} bytes)")
+                return None
+                
+            encoding = self.detect_encoding(file_path)
+            if not encoding:
+                logger.warning(f"Could not detect encoding for: {file_path}")
+                return None
+                
+            with open(file_path, 'r', encoding=encoding, errors='ignore') as f:
                 return f.read()
-        except UnicodeDecodeError:
-            continue
-        except (IOError, OSError) as e:
-            # Handle file permission errors or other IO issues
-            print(f"Error reading file {filepath}: {e}")
+                
+        except Exception as e:
+            logger.error(f"Error reading file {file_path}: {e}")
             return None
     
-    # If all encodings fail, try reading as binary and decode with error handling
-    try:
-        with open(filepath, 'rb') as f:
-            content = f.read()
-            return content.decode('utf-8', errors='replace')
-    except Exception as e:
-        print(f"Failed to read file {filepath}: {e}")
+    def detect_encoding(self, file_path: str) -> Optional[str]:
+        """
+        Detect file encoding using chardet.
+        
+        Args:
+            file_path: Path to the file
+            
+        Returns:
+            Detected encoding or None
+        """
+        if file_path in self._encoding_cache:
+            return self._encoding_cache[file_path]
+            
+        try:
+            with open(file_path, 'rb') as f:
+                raw_data = f.read(8192)  # Read first 8KB for detection
+                
+            if not raw_data:
+                return 'utf-8'
+                
+            result = chardet.detect(raw_data)
+            encoding = result.get('encoding', 'utf-8')
+            
+            if encoding and result.get('confidence', 0) > 0.7:
+                self._encoding_cache[file_path] = encoding
+                return encoding
+            else:
+                # Fallback to common encodings
+                for fallback in ['utf-8', 'latin-1', 'cp1252']:
+                    try:
+                        with open(file_path, 'r', encoding=fallback) as f:
+                            f.read(1024)  # Try reading some content
+                        self._encoding_cache[file_path] = fallback
+                        return fallback
+                    except UnicodeDecodeError:
+                        continue
+                        
+        except Exception as e:
+            logger.error(f"Error detecting encoding for {file_path}: {e}")
+            
         return None
 
 
-def get_relative_path(base_path: str, target_path: str) -> str:
+def read_file_safely(file_path: str, max_size: int = 10 * 1024 * 1024) -> Optional[str]:
     """
-    Gets the relative path from base_path to target_path.
+    Safely read a file with encoding detection and size limits.
     
     Args:
-        base_path: The base directory path.
-        target_path: The target file or directory path.
-    
+        file_path: Path to the file
+        max_size: Maximum file size in bytes
+        
     Returns:
-        The relative path from base to target, normalized with forward slashes.
+        File content or None if reading fails
     """
-    try:
-        base = Path(base_path).resolve()
-        target = Path(target_path).resolve()
-        
-        # Calculate relative path
-        relative = target.relative_to(base)
-        
-        # Convert to forward slashes for consistency
-        return str(relative).replace(os.sep, '/')
-    
-    except ValueError:
-        # Paths are not relative to each other, return absolute target path
-        return str(Path(target_path).resolve())
-    except Exception:
-        # Fallback to string manipulation
-        return os.path.relpath(target_path, base_path).replace(os.sep, '/')
+    reader = FileReader(max_size)
+    return reader.read_file(file_path)
 
 
-def is_text_file(filepath: str) -> bool:
+def detect_encoding(file_path: str) -> Optional[str]:
     """
-    Determines if a file is likely to be a text file.
-    
-    This function uses multiple strategies to determine if a file is text:
-    1. Check file extension against known text file types
-    2. Use mimetypes library to guess content type
-    3. Attempt to read the beginning of the file to check for binary content
+    Detect file encoding.
     
     Args:
-        filepath: The path to the file to check.
-    
+        file_path: Path to the file
+        
     Returns:
-        True if the file is likely a text file, False otherwise.
+        Detected encoding or None
     """
-    if not filepath or not os.path.exists(filepath):
-        return False
+    reader = FileReader()
+    return reader.detect_encoding(file_path)
+
+
+def is_python_file(file_path: str) -> bool:
+    """
+    Check if a file is a Python file.
     
-    # Convert to Path object for easier manipulation
-    path = Path(filepath)
+    Args:
+        file_path: Path to the file
+        
+    Returns:
+        True if the file is a Python file
+    """
+    path = Path(file_path)
     
-    # Check if it's a directory
-    if path.is_dir():
-        return False
-    
-    # Known text file extensions
-    text_extensions = {
-        '.py', '.txt', '.md', '.rst', '.cfg', '.ini', '.conf', '.json',
-        '.yaml', '.yml', '.xml', '.html', '.css', '.js', '.toml',
-        '.requirements', '.in', '.lock', '.log', '.sh', '.bat',
-        '.sql', '.csv', '.tsv', '.gitignore', '.dockerignore'
-    }
-    
-    # Check file extension
-    if path.suffix.lower() in text_extensions:
+    # Check extension
+    if path.suffix.lower() in PYTHON_EXTENSIONS:
         return True
+        
+    # Check shebang for extensionless files
+    if not path.suffix:
+        try:
+            with open(file_path, 'rb') as f:
+                first_line = f.readline(100).decode('utf-8', errors='ignore')
+                if first_line.startswith('#!') and 'python' in first_line:
+                    return True
+        except Exception:
+            pass
+            
+    return False
+
+
+def is_text_file(file_path: str) -> bool:
+    """
+    Check if a file is a text file.
     
-    # Check files without extensions that are commonly text
-    if not path.suffix and path.name.lower() in {
-        'readme', 'license', 'changelog', 'authors', 'contributors',
-        'dockerfile', 'makefile', 'pipfile', 'procfile'
-    }:
-        return True
-    
-    # Use mimetypes to guess content type
-    mime_type, _ = mimetypes.guess_type(filepath)
+    Args:
+        file_path: Path to the file
+        
+    Returns:
+        True if the file is likely a text file
+    """
+    mime_type, _ = mimetypes.guess_type(file_path)
     if mime_type and mime_type.startswith('text/'):
         return True
+        
+    # Check for common text file extensions
+    path = Path(file_path)
+    text_extensions = {
+        '.txt', '.md', '.rst', '.yaml', '.yml', '.json', '.xml',
+        '.cfg', '.ini', '.toml', '.conf', '.config', '.env'
+    }
     
-    # Try to read the beginning of the file to check for binary content
-    try:
-        with open(filepath, 'rb') as f:
-            # Read first 1024 bytes
-            chunk = f.read(1024)
-            
-            # Check for null bytes (common in binary files)
-            if b'\x00' in chunk:
-                return False
-            
-            # Try to decode as UTF-8
-            try:
-                chunk.decode('utf-8')
-                return True
-            except UnicodeDecodeError:
-                # Try other common encodings
-                for encoding in ['latin-1', 'cp1252']:
-                    try:
-                        chunk.decode(encoding)
-                        return True
-                    except UnicodeDecodeError:
-                        continue
-                
-                return False
-    
-    except Exception:
-        return False
+    return path.suffix.lower() in text_extensions
 
 
-def ensure_directory_exists(directory_path: str) -> bool:
+def should_ignore_file(file_path: str, ignore_patterns: Optional[Set[str]] = None) -> bool:
     """
-    Ensures that a directory exists, creating it if necessary.
+    Check if a file should be ignored based on patterns.
     
     Args:
-        directory_path: The path to the directory to create.
-    
+        file_path: Path to the file
+        ignore_patterns: Custom ignore patterns to use
+        
     Returns:
-        True if the directory exists or was created successfully, False otherwise.
+        True if the file should be ignored
+    """
+    if ignore_patterns is None:
+        ignore_patterns = IGNORE_PATTERNS
+        
+    path = Path(file_path)
+    
+    # Check if any part of the path matches ignore patterns
+    for part in path.parts:
+        for pattern in ignore_patterns:
+            if '*' in pattern:
+                # Handle glob patterns
+                import fnmatch
+                if fnmatch.fnmatch(part, pattern):
+                    return True
+            else:
+                # Exact match
+                if part == pattern:
+                    return True
+                    
+    return False
+
+
+def find_files_by_pattern(directory: str, pattern: str, recursive: bool = True) -> List[str]:
+    """
+    Find files matching a pattern in a directory.
+    
+    Args:
+        directory: Directory to search
+        pattern: File pattern to match
+        recursive: Whether to search recursively
+        
+    Returns:
+        List of matching file paths
+    """
+    import fnmatch
+    
+    matches = []
+    directory = Path(directory)
+    
+    if not directory.exists():
+        return matches
+        
+    search_pattern = "**/" + pattern if recursive else pattern
+    
+    try:
+        for file_path in directory.glob(search_pattern):
+            if file_path.is_file() and not should_ignore_file(str(file_path)):
+                matches.append(str(file_path))
+    except Exception as e:
+        logger.error(f"Error finding files with pattern '{pattern}': {e}")
+        
+    return matches
+
+
+def get_project_files(project_path: str, include_tests: bool = False) -> Dict[str, List[FileInfo]]:
+    """
+    Get categorized files from a project directory.
+    
+    Args:
+        project_path: Path to the project root
+        include_tests: Whether to include test files
+        
+    Returns:
+        Dictionary of categorized file information
+    """
+    project_path = Path(project_path)
+    if not project_path.exists():
+        raise ValueError(f"Project path does not exist: {project_path}")
+        
+    files = {
+        'python': [],
+        'config': [],
+        'documentation': [],
+        'tests': [],
+        'other': []
+    }
+    
+    try:
+        for root, dirs, filenames in os.walk(project_path):
+            # Skip ignored directories
+            dirs[:] = [d for d in dirs if not should_ignore_file(os.path.join(root, d))]
+            
+            for filename in filenames:
+                file_path = os.path.join(root, filename)
+                
+                if should_ignore_file(file_path):
+                    continue
+                    
+                # Skip test files if not requested
+                if not include_tests and ('test' in filename.lower() or 'test' in Path(file_path).parent.name.lower()):
+                    continue
+                    
+                file_info = _get_file_info(file_path)
+                
+                # Categorize files
+                if file_info.is_python:
+                    files['python'].append(file_info)
+                elif file_info.is_config:
+                    files['config'].append(file_info)
+                elif filename.lower() in ['readme.md', 'readme.rst', 'readme.txt', 'changelog.md', 'changelog.rst']:
+                    files['documentation'].append(file_info)
+                elif 'test' in filename.lower():
+                    files['tests'].append(file_info)
+                else:
+                    files['other'].append(file_info)
+                    
+    except Exception as e:
+        logger.error(f"Error scanning project files: {e}")
+        
+    return files
+
+
+def _get_file_info(file_path: str) -> FileInfo:
+    """
+    Get detailed information about a file.
+    
+    Args:
+        file_path: Path to the file
+        
+    Returns:
+        FileInfo object with file details
+    """
+    path = Path(file_path)
+    
+    try:
+        size = path.stat().st_size
+        mime_type, _ = mimetypes.guess_type(file_path)
+        
+        file_info = FileInfo(
+            path=str(path),
+            size=size,
+            mime_type=mime_type,
+            is_text=is_text_file(file_path),
+            is_python=is_python_file(file_path),
+            is_config=path.name in CONFIG_FILES
+        )
+        
+        if file_info.is_text:
+            file_info.encoding = detect_encoding(file_path)
+            
+        return file_info
+        
+    except Exception as e:
+        logger.error(f"Error getting file info for {file_path}: {e}")
+        return FileInfo(path=str(path), size=0)
+
+
+def get_file_size(file_path: str) -> int:
+    """
+    Get file size in bytes.
+    
+    Args:
+        file_path: Path to the file
+        
+    Returns:
+        File size in bytes, or 0 if error
+    """
+    try:
+        return Path(file_path).stat().st_size
+    except Exception:
+        return 0
+
+
+def create_directory(directory_path: str) -> bool:
+    """
+    Create a directory if it doesn't exist.
+    
+    Args:
+        directory_path: Path to the directory
+        
+    Returns:
+        True if directory was created or already exists
     """
     try:
         Path(directory_path).mkdir(parents=True, exist_ok=True)
         return True
     except Exception as e:
-        print(f"Error creating directory {directory_path}: {e}")
+        logger.error(f"Error creating directory {directory_path}: {e}")
         return False
 
 
-def get_file_size(filepath: str) -> int:
+def get_relative_path(file_path: str, base_path: str) -> str:
     """
-    Gets the size of a file in bytes.
+    Get relative path from base path.
     
     Args:
-        filepath: The path to the file.
-    
+        file_path: Full path to file
+        base_path: Base path to calculate relative from
+        
     Returns:
-        The file size in bytes, or 0 if the file doesn't exist or can't be accessed.
+        Relative path
     """
     try:
-        return os.path.getsize(filepath)
-    except Exception:
-        return 0
-
-
-def is_python_package(directory_path: str) -> bool:
-    """
-    Determines if a directory is a Python package (contains __init__.py).
-    
-    Args:
-        directory_path: The path to the directory to check.
-    
-    Returns:
-        True if the directory contains an __init__.py file, False otherwise.
-    """
-    if not os.path.isdir(directory_path):
-        return False
-    
-    init_file = os.path.join(directory_path, '__init__.py')
-    return os.path.exists(init_file)
-
-
-def get_file_extension(filepath: str) -> str:
-    """
-    Gets the file extension from a filepath.
-    
-    Args:
-        filepath: The path to the file.
-    
-    Returns:
-        The file extension (including the dot), or empty string if no extension.
-    """
-    return Path(filepath).suffix.lower()
-
-
-def normalize_path(path: str) -> str:
-    """
-    Normalizes a file path by resolving relative components and converting separators.
-    
-    Args:
-        path: The path to normalize.
-    
-    Returns:
-        The normalized path as a string.
-    """
-    return str(Path(path).resolve())
-
-
-# New Enhanced Functions for LLM Integration
-
-def count_tokens(text: str, model: str = "gpt-4") -> int:
-    """
-    Count tokens for specific LLM model using tiktoken.
-    
-    Args:
-        text: The text to count tokens for
-        model: The LLM model to use for tokenization
-        
-    Returns:
-        Number of tokens in the text
-    """
-    if not text:
-        return 0
-    
-    if tiktoken is None:
-        # Fallback estimation: roughly 1.3 tokens per word
-        return int(len(text.split()) * 1.3)
-    
-    try:
-        # Map common model names to tiktoken encodings
-        model_mapping = {
-            "gpt-4": "cl100k_base",
-            "gpt-4o": "o200k_base",
-            "gpt-4o-mini": "o200k_base",
-            "gpt-3.5-turbo": "cl100k_base",
-            "gemini-2.5-flash": "cl100k_base",  # Approximate
-            "claude-sonnet": "cl100k_base",     # Approximate
-        }
-        
-        # Try to get encoding for the specific model
-        if model in model_mapping:
-            encoding = tiktoken.get_encoding(model_mapping[model])
-        else:
-            # Try direct model name
-            encoding = tiktoken.encoding_for_model(model)
-        
-        return len(encoding.encode(text))
-    
-    except Exception:
-        # Fallback estimation
-        return int(len(text.split()) * 1.3)
-
-
-def optimize_content_for_llm(content: str, max_tokens: int, model: str = "gpt-4") -> str:
-    """
-    Optimize content to fit within token limits using intelligent truncation.
-    
-    Args:
-        content: The content to optimize
-        max_tokens: Maximum token limit
-        model: LLM model for token counting
-        
-    Returns:
-        Optimized content that fits within token limits
-    """
-    current_tokens = count_tokens(content, model)
-    
-    if current_tokens <= max_tokens:
-        return content
-    
-    # Calculate reduction needed
-    reduction_ratio = max_tokens / current_tokens
-    
-    # Apply various optimization strategies
-    optimized_content = content
-    
-    # 1. Remove excessive whitespace
-    optimized_content = re.sub(r'\n\s*\n\s*\n', '\n\n', optimized_content)
-    optimized_content = re.sub(r' +', ' ', optimized_content)
-    
-    # 2. Remove comments (but preserve docstrings)
-    optimized_content = _remove_comments(optimized_content)
-    
-    # 3. Compress long functions if still too long
-    if count_tokens(optimized_content, model) > max_tokens:
-        optimized_content = _compress_functions(optimized_content, reduction_ratio)
-    
-    # 4. Truncate by priority if still too long
-    if count_tokens(optimized_content, model) > max_tokens:
-        optimized_content = _truncate_by_priority(optimized_content, max_tokens, model)
-    
-    return optimized_content
-
-
-def _remove_comments(content: str) -> str:
-    """Remove comments while preserving docstrings."""
-    lines = content.split('\n')
-    result_lines = []
-    in_docstring = False
-    docstring_quote = None
-    
-    for line in lines:
-        stripped = line.strip()
-        
-        # Check for docstring start/end
-        if not in_docstring:
-            if stripped.startswith('"""') or stripped.startswith("'''"):
-                in_docstring = True
-                docstring_quote = stripped[:3]
-                result_lines.append(line)
-                if stripped.count(docstring_quote) >= 2:
-                    in_docstring = False
-                continue
-        else:
-            result_lines.append(line)
-            if docstring_quote in stripped:
-                in_docstring = False
-            continue
-        
-        # Remove single-line comments
-        if stripped.startswith('#'):
-            continue
-        
-        # Remove inline comments
-        if '#' in line:
-            # Simple heuristic: remove everything after # if not in string
-            comment_pos = line.find('#')
-            quote_count = line[:comment_pos].count('"') + line[:comment_pos].count("'")
-            if quote_count % 2 == 0:  # Even number of quotes before #
-                line = line[:comment_pos].rstrip()
-        
-        result_lines.append(line)
-    
-    return '\n'.join(result_lines)
-
-
-def _compress_functions(content: str, reduction_ratio: float) -> str:
-    """Compress long functions by summarizing their content."""
-    try:
-        tree = ast.parse(content)
-        lines = content.split('\n')
-        result_lines = lines.copy()
-        
-        # Find long functions to compress
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                if hasattr(node, 'end_lineno') and node.end_lineno:
-                    func_length = node.end_lineno - node.lineno
-                    if func_length > 10:  # Compress functions longer than 10 lines
-                        # Replace function body with summary
-                        docstring = ast.get_docstring(node) or "Function implementation"
-                        summary = f'    """{docstring}"""'
-                        summary += f'\n    # Implementation ({func_length} lines) - truncated for brevity'
-                        summary += f'\n    pass'
-                        
-                        # Replace lines
-                        for i in range(node.lineno, min(node.end_lineno, len(result_lines))):
-                            if i == node.lineno:
-                                # Keep function signature
-                                continue
-                            elif i == node.lineno + 1:
-                                result_lines[i] = summary
-                            else:
-                                result_lines[i] = ""
-        
-        return '\n'.join(line for line in result_lines if line is not None)
-    
-    except Exception:
-        # If AST parsing fails, just return original content
-        return content
-
-
-def _truncate_by_priority(content: str, max_tokens: int, model: str) -> str:
-    """Truncate content by priority, keeping most important parts."""
-    lines = content.split('\n')
-    
-    # Categorize lines by priority
-    high_priority = []
-    medium_priority = []
-    low_priority = []
-    
-    for i, line in enumerate(lines):
-        stripped = line.strip()
-        
-        # High priority: imports, class/function definitions, docstrings
-        if (stripped.startswith(('import ', 'from ', 'class ', 'def ', 'async def ')) or
-            stripped.startswith(('"""', "'''")) or
-            stripped.startswith('#') and 'TODO' in stripped):
-            high_priority.append((i, line))
-        
-        # Medium priority: non-empty lines with code
-        elif stripped and not stripped.startswith('#'):
-            medium_priority.append((i, line))
-        
-        # Low priority: comments, empty lines
-        else:
-            low_priority.append((i, line))
-    
-    # Build result by priority
-    result_lines = [''] * len(lines)
-    
-    # Add high priority lines
-    for i, line in high_priority:
-        result_lines[i] = line
-    
-    # Add medium priority lines if we have token budget
-    temp_content = '\n'.join(result_lines)
-    for i, line in medium_priority:
-        temp_content_with_line = temp_content + '\n' + line
-        if count_tokens(temp_content_with_line, model) <= max_tokens:
-            result_lines[i] = line
-            temp_content = temp_content_with_line
-        else:
-            break
-    
-    # Add low priority lines if we still have budget
-    temp_content = '\n'.join(result_lines)
-    for i, line in low_priority:
-        temp_content_with_line = temp_content + '\n' + line
-        if count_tokens(temp_content_with_line, model) <= max_tokens:
-            result_lines[i] = line
-            temp_content = temp_content_with_line
-        else:
-            break
-    
-    return '\n'.join(line for line in result_lines if line)
-
-
-def extract_code_examples(filepath: str) -> List[str]:
-    """
-    Extract code examples from Python files.
-    
-    Args:
-        filepath: Path to the Python file
-        
-    Returns:
-        List of code examples found in the file
-    """
-    examples = []
-    
-    try:
-        content = safe_read_file(filepath)
-        if not content:
-            return examples
-        
-        # Parse the file as AST
-        tree = ast.parse(content)
-        
-        # Extract if __name__ == "__main__" blocks
-        main_examples = _extract_main_blocks(content, tree)
-        examples.extend(main_examples)
-        
-        # Extract docstring examples
-        docstring_examples = _extract_docstring_examples(tree)
-        examples.extend(docstring_examples)
-        
-        # Extract test examples
-        test_examples = _extract_test_examples(tree)
-        examples.extend(test_examples)
-        
-    except Exception as e:
-        print(f"Error extracting examples from {filepath}: {e}")
-    
-    return examples
-
-
-def _extract_main_blocks(content: str, tree: ast.AST) -> List[str]:
-    """Extract code from if __name__ == "__main__" blocks."""
-    examples = []
-    lines = content.split('\n')
-    
-    for node in ast.walk(tree):
-        if isinstance(node, ast.If):
-            # Check if this is a __name__ == "__main__" condition
-            if _is_main_guard(node.test):
-                # Extract the code block
-                start_line = node.lineno - 1
-                end_line = getattr(node, 'end_lineno', len(lines)) - 1
-                
-                block_lines = lines[start_line:end_line + 1]
-                
-                # Clean up the block (remove the if statement itself)
-                example_lines = []
-                for line in block_lines[1:]:  # Skip the if statement
-                    if line.strip():
-                        example_lines.append(line)
-                
-                if example_lines:
-                    examples.append('\n'.join(example_lines))
-    
-    return examples
-
-
-def _is_main_guard(test_node: ast.AST) -> bool:
-    """Check if a test node is a __name__ == "__main__" condition."""
-    if isinstance(test_node, ast.Compare):
-        if (isinstance(test_node.left, ast.Name) and 
-            test_node.left.id == '__name__' and
-            len(test_node.ops) == 1 and
-            isinstance(test_node.ops[0], ast.Eq) and
-            len(test_node.comparators) == 1):
-            
-            comparator = test_node.comparators[0]
-            if isinstance(comparator, ast.Constant):
-                return comparator.value == '__main__'
-            elif isinstance(comparator, ast.Str):  # Python < 3.8
-                return comparator.s == '__main__'
-    
-    return False
-
-
-def _extract_docstring_examples(tree: ast.AST) -> List[str]:
-    """Extract code examples from docstrings."""
-    examples = []
-    
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            docstring = ast.get_docstring(node)
-            if docstring:
-                # Look for code blocks in docstring
-                code_blocks = _parse_docstring_examples(docstring)
-                examples.extend(code_blocks)
-    
-    return examples
-
-
-def _parse_docstring_examples(docstring: str) -> List[str]:
-    """Parse code examples from docstring text."""
-    examples = []
-    
-    # Look for code blocks after "Example:" or "Examples:"
-    example_pattern = r'(?:Examples?|Usage):\s*\n(.*?)(?:\n\s*\n|\n\s*[A-Z]|\Z)'
-    matches = re.findall(example_pattern, docstring, re.DOTALL | re.IGNORECASE)
-    
-    for match in matches:
-        # Clean up the example
-        example = match.strip()
-        if example:
-            examples.append(example)
-    
-    # Look for code blocks marked with >>> (doctest style)
-    doctest_pattern = r'>>> (.*?)(?:\n(?!>>>|\s*\.\.\.|\s*$)|\Z)'
-    doctest_matches = re.findall(doctest_pattern, docstring, re.MULTILINE | re.DOTALL)
-    
-    for match in doctest_matches:
-        if match.strip():
-            examples.append(match.strip())
-    
-    return examples
-
-
-def _extract_test_examples(tree: ast.AST) -> List[str]:
-    """Extract examples from test functions."""
-    examples = []
-    
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            if node.name.startswith('test_'):
-                # This is a test function
-                docstring = ast.get_docstring(node)
-                if docstring:
-                    examples.append(f"# Test: {node.name}\n{docstring}")
-    
-    return examples
-
-
-def create_template_content(template_vars: Dict[str, Any]) -> str:
-    """
-    Create content from template variables for README generation.
-    
-    Args:
-        template_vars: Dictionary of template variables
-        
-    Returns:
-        Formatted template content
-    """
-    template = """
-        # {project_name}
-
-        {description}
-
-        ## Installation
-
-        {installation_instructions}
-
-        ## Usage
-
-        {usage_examples}
-
-        ## Project Structure
-
-        {project_structure}
-
-
-        ## Dependencies
-
-        {dependencies}
-
-        ## Contributing
-
-        {contributing_info}
-
-        ## License
-
-        {license_info}
-        """
-    
-    return template.format(**template_vars)
-
-
-def estimate_content_tokens(content_dict: Dict[str, str], model: str = "gpt-4") -> Dict[str, int]:
-    """
-    Estimate token counts for different content sections.
-    
-    Args:
-        content_dict: Dictionary of content sections
-        model: LLM model for token counting
-        
-    Returns:
-        Dictionary with token counts for each section
-    """
-    token_counts = {}
-    
-    for section, content in content_dict.items():
-        if content:
-            token_counts[section] = count_tokens(str(content), model)
-        else:
-            token_counts[section] = 0
-    
-    return token_counts
-
-
-def chunk_content_by_tokens(content: str, max_tokens: int, model: str = "gpt-4", 
-                           overlap: int = 100) -> List[str]:
-    """
-    Split content into chunks based on token limits.
-    
-    Args:
-        content: Content to chunk
-        max_tokens: Maximum tokens per chunk
-        model: LLM model for token counting
-        overlap: Token overlap between chunks
-        
-    Returns:
-        List of content chunks
-    """
-    if count_tokens(content, model) <= max_tokens:
-        return [content]
-    
-    chunks = []
-    lines = content.split('\n')
-    current_chunk = []
-    current_tokens = 0
-    
-    for line in lines:
-        line_tokens = count_tokens(line, model)
-        
-        if current_tokens + line_tokens > max_tokens and current_chunk:
-            # Save current chunk
-            chunks.append('\n'.join(current_chunk))
-            
-            # Start new chunk with overlap
-            if overlap > 0:
-                overlap_lines = []
-                overlap_tokens = 0
-                for prev_line in reversed(current_chunk):
-                    line_tokens_check = count_tokens(prev_line, model)
-                    if overlap_tokens + line_tokens_check <= overlap:
-                        overlap_lines.insert(0, prev_line)
-                        overlap_tokens += line_tokens_check
-                    else:
-                        break
-                current_chunk = overlap_lines
-                current_tokens = overlap_tokens
-            else:
-                current_chunk = []
-                current_tokens = 0
-        
-        current_chunk.append(line)
-        current_tokens += line_tokens
-    
-    # Add final chunk
-    if current_chunk:
-        chunks.append('\n'.join(current_chunk))
-    
-    return chunks
-
-
-def get_content_summary(content: str, max_length: int = 500) -> str:
-    """
-    Generate a brief summary of content.
-    
-    Args:
-        content: Content to summarize
-        max_length: Maximum summary length
-        
-    Returns:
-        Content summary
-    """
-    if len(content) <= max_length:
-        return content
-    
-    # Extract first paragraph or docstring
-    lines = content.split('\n')
-    summary_lines = []
-    
-    for line in lines:
-        stripped = line.strip()
-        if stripped and not stripped.startswith('#'):
-            summary_lines.append(line)
-            if len('\n'.join(summary_lines)) > max_length:
-                break
-    
-    summary = '\n'.join(summary_lines)
-    if len(summary) > max_length:
-        summary = summary[:max_length] + "..."
-    
-    return summary
+        return str(Path(file_path).relative_to(Path(base_path)))
+    except ValueError:
+        return file_path
