@@ -55,7 +55,7 @@ def create_parser() -> argparse.ArgumentParser:
     """Create and configure the argument parser."""
     parser = argparse.ArgumentParser(
         prog="readme-generator",
-        description="description",
+        description="Automatically generate comprehensive README files for Python projects using LLM APIs",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -591,7 +591,6 @@ async def parse_and_generate_command(args: argparse.Namespace, config: Config) -
         raise
 
 
-
 def print_error(message: str) -> None:
     """Print error message to stderr."""
     print(f"Error: {message}", file=sys.stderr)
@@ -650,7 +649,6 @@ def main() -> None:
         logger.error(f"Unexpected error: {e}")
         print_error(f"An unexpected error occurred: {e}")
         sys.exit(1)
-
 
 
 if __name__ == "__main__":

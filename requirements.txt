@@ -1,30 +1,26 @@
-# Core LLM integration dependencies
-tiktoken>=0.5.0
-openai>=1.0.0
-google-generativeai>=0.3.0
-anthropic>=0.7.0
+# Core dependencies for README generator
+google-generativeai>=0.3.0    # Gemini API support
+openai>=1.0.0                 # OpenAI GPT models support
+anthropic>=0.7.0              # Claude API support
 
-# Template and output formatting
-jinja2>=3.0.0
-click>=8.0.0
-rich>=13.0.0
+# TOML parsing (for pyproject.toml)
+tomli>=2.0.0; python_version<"3.11"  # TOML parser for Python <3.11
+tomllib-w>=1.0.0; python_version<"3.11"  # Additional TOML support
 
-# Data handling and validation
-pydantic>=2.0.0
-tomli>=2.0.0
+# Optional dependencies for enhanced functionality
+jsonschema>=4.0.0             # JSON schema validation (optional)
 
-# Additional utilities
-requests>=2.28.0
-python-dotenv>=0.19.0
-pathspec>=0.10.0
-
-# Development dependencies (optional)
-pytest>=7.0.0
-pytest-cov>=4.0.0
-black>=22.0.0
-flake8>=5.0.0
-mypy>=0.991
+# Development and testing dependencies (optional)
+pytest>=7.0.0                 # Testing framework
+pytest-cov>=4.0.0            # Coverage reporting
+black>=22.0.0                 # Code formatting
+flake8>=5.0.0                # Linting
+mypy>=1.0.0                  # Type checking
 
 # Documentation dependencies (optional)
-sphinx>=5.0.0
-sphinx-rtd-theme>=1.0.0
+sphinx>=5.0.0                 # Documentation generation
+sphinx-rtd-theme>=1.2.0      # Documentation theme
+
+# Build and packaging (optional)
+build>=0.8.0                 # Build system
+twine>=4.0.0                 # Package upload
