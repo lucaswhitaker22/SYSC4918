@@ -1,3 +1,3 @@
-# README Generation Failed
+# SYSC4918
 
-The README generation failed due to an error in LLM API call.
+python -m src.cli "C:\Users\lwhitaker\personal\SYSC4918\SYSC4918\src" --json_output extracted_code.json --readme_output README.md --max_tokens 500000 --project_name "MyProject"
