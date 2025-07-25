@@ -255,7 +255,6 @@ def create_partial_file_data(file_data: Dict[str, Any], remaining_tokens: int) -
     
     return partial if used_tokens > 0 else None
 
-
 def generate_readme_context_json(project_dir: str, output_file: str = 'output.json'):
     """
     Main function to extract and prioritize Python project code for README generation.
