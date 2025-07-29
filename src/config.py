@@ -106,8 +106,8 @@ class Config:
     def _get_api_key_from_env(self) -> Optional[str]:
         """Get API key from environment variables."""
         env_keys = {
-            "gemini_2_5_pro": "GEMINI_API_KEY",
-            "gemini_2_5_flash": "GEMINI_API_KEY",
+            "gemini_2_5_pro": "AIzaSyBI-cBe8ClKDTUrJuQ8x2i94OGen6XFbvs",
+            "gemini_2_5_flash": "AIzaSyBI-cBe8ClKDTUrJuQ8x2i94OGen6XFbvs",
             "gpt_4o": "OPENAI_API_KEY",
             "gpt_4o_mini": "OPENAI_API_KEY",
             "claude_sonnet": "ANTHROPIC_API_KEY",
