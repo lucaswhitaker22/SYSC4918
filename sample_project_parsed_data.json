@@ -1,0 +1,2438 @@
+{
+  "success": true,
+  "project_metadata": {
+    "name": "sample-project",
+    "version": "1.2.3",
+    "description": "A comprehensive sample Python project for testing README generation",
+    "readme": "README.md",
+    "license": {
+      "text": "MIT"
+    },
+    "author": "John Developer",
+    "author_email": "john.dev@example.com",
+    "homepage": "",
+    "repository": "https://github.com/example/sample-project.git",
+    "email": "john.dev@example.com"
+  },
+  "dependencies": [
+    "requests>=2.25.0",
+    "click>=8.0.0",
+    "pydantic>=1.8.0,<3.0.0",
+    "rich>=10.0.0",
+    "typer>=0.4.0",
+    "pyyaml>=6.0",
+    "configparser>=5.0.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "black>=22.0.0",
+    "flake8>=4.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=2.20.0",
+    "coverage>=6.0.0",
+    "sphinx>=4.0.0",
+    "sphinx-rtd-theme>=1.0.0",
+    "myst-parser>=0.18.0",
+    "aiohttp>=3.8.0",
+    "asyncio-mqtt>=0.11.0",
+    "requests>=2.25.0,<3.0.0",
+    "click>=8.0.0,<9.0.0",
+    "rich>=10.0.0,<14.0.0",
+    "typer>=0.4.0,<1.0.0",
+    "pyyaml>=6.0,<7.0",
+    "aiohttp>=3.8.0,<4.0.0; extra == \"async\"",
+    "asyncio-mqtt>=0.11.0,<1.0.0; extra == \"async\"",
+    "pandas>=1.3.0,<3.0.0",
+    "numpy>=1.21.0,<2.0.0",
+    "python-dateutil>=2.8.0",
+    "httpx>=0.24.0,<1.0.0",
+    "urllib3>=1.26.0,<3.0.0",
+    "python-dotenv>=0.19.0,<2.0.0",
+    "toml>=0.10.2",
+    "tomli>=2.0.0; python_version < \"3.11\"",
+    "tomli-w>=1.0.0",
+    "structlog>=21.0.0,<24.0.0",
+    "colorlog>=6.0.0,<7.0.0",
+    "jsonschema>=4.0.0,<5.0.0",
+    "marshmallow>=3.17.0,<4.0.0",
+    "pathlib2>=2.3.0; python_version < \"3.4\"",
+    "importlib-metadata>=4.0.0; python_version < \"3.8\"",
+    "typing-extensions>=4.0.0; python_version < \"3.8\"",
+    "sqlalchemy>=1.4.0,<3.0.0",
+    "alembic>=1.8.0,<2.0.0",
+    "redis>=4.0.0,<5.0.0",
+    "diskcache>=5.4.0,<6.0.0",
+    "cryptography>=3.4.0,<42.0.0",
+    "bcrypt>=3.2.0,<5.0.0",
+    "jinja2>=3.0.0,<4.0.0",
+    "openpyxl>=3.0.0,<4.0.0",
+    "xlrd>=2.0.0,<3.0.0",
+    "cachetools>=5.0.0,<6.0.0",
+    "lru-dict>=1.1.0,<2.0.0",
+    "colorama>=0.4.0,<1.0.0; sys_platform == \"win32\"",
+    "termcolor>=1.1.0,<3.0.0",
+    "tqdm>=4.64.0,<5.0.0",
+    "alive-progress>=2.4.0,<4.0.0",
+    "dnspython>=2.2.0,<3.0.0",
+    "validators>=0.20.0,<1.0.0",
+    "regex>=2022.0.0,<2024.0.0",
+    "fuzzywuzzy>=0.18.0,<1.0.0",
+    "python-levenshtein>=0.20.0,<1.0.0",
+    "pytz>=2022.0,<2024.0",
+    "croniter>=1.3.0,<2.0.0",
+    "schedule>=1.2.0,<2.0.0",
+    "psutil>=5.9.0,<6.0.0",
+    "watchdog>=2.1.0,<4.0.0",
+    "six>=1.16.0,<2.0.0",
+    "backports.zoneinfo>=0.2.0; python_version < \"3.9\""
+  ],
+  "entry_points": {
+    "main_modules": [],
+    "cli_scripts": [
+      {
+        "type": "cli_script",
+        "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+        "usage": "python cli.py",
+        "source_code": "\"\"\"\nCommand-line interface for the Sample Project.\n\nThis module provides a comprehensive CLI for interacting with the sample project,\nincluding data processing, configuration management, and various utility commands.\n\"\"\"\n\nimport argparse\nimport asyncio\nimport json\nimport sys\nimport time\nfrom pathlib import Path\nfrom typing import Any, Dict, List, Optional\n\nimport click\nimport typer\nfrom rich.console import Console\nfrom rich.table import Table\nfrom rich.progress import track\n\nfrom .main import SampleProcessor, DataProcessor, create_processor, ProcessingError\nfrom .config import Config, load_config, save_config\nfrom .models import DataModel, ValidationError\nfrom .utils import format_output, validate_input\n\n# Initialize rich console for beautiful output\nconsole = Console()\n\n# Typer app for modern CLI\napp = typer.Typer(\n    name=\"sample-project\",\n    help=\"A comprehensive sample project CLI for data processing and management.\",\n    add_completion=False,\n    rich_markup_mode=\"rich\"\n)\n\n# Version information\n__version__ = \"1.2.3\"\n\n\nclass CLIError(Exception):\n    \"\"\"Custom exception for CLI-related errors.\"\"\"\n    pass\n\n\n@app.command()\ndef version():\n    \"\"\"Show version information.\"\"\"\n    console.print(f\"Sample Project CLI v{__version__}\", style=\"bold green\")\n    console.print(f\"Python: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}\")\n\n\n@app.command()\ndef process(\n    input_data: str = typer.Argument(..., help=\"Input data to process\"),\n    processor_type: str = typer.Option(\"sample\", help=\"Type of processor to use\"),\n    config_file: Optional[str] = typer.Option(None, \"--config\", \"-c\", help=\"Configuration file path\"),\n    output_format: str = typer.Option(\"json\", help=\"Output format (json, yaml, table)\"),\n    debug: bool = typer.Option(False, \"--debug\", help=\"Enable debug mode\"),\n    async_mode: bool = typer.Option(False, \"--async\", help=\"Use async processing\"),\n    save_result: Optional[str] = typer.Option(None, \"--save\", help=\"Save result to file\"),\n):\n    \"\"\"\n    Process input data using the specified processor.\n    \n    Examples:\n        sample-project process \"Hello World\" --debug\n        sample-project process '{\"name\": \"test\", \"value\": 42}' --processor-type data\n        sample-project process \"batch data\" --save results.json\n    \"\"\"\n    try:\n        # Load configuration\n        if config_file:\n            config = load_config(config_file)\n            console.print(f\"Loaded config from: {config_file}\", style=\"dim\")\n        else:\n            config = Config()\n        \n        # Override config with CLI options\n        if debug:\n            config.debug = debug\n        \n        # Create processor\n        processor = create_processor(processor_type, config)\n        \n        # Process data\n        start_time = time.time()\n        \n        if async_mode:\n            result = asyncio.run(processor.process_async(input_data))\n        else:\n            result = processor.process(input_data)\n        \n        processing_time = time.time() - start_time\n        \n        # Format and display output\n        if output_format == \"table\":\n            _display_result_table(result, processing_time)\n        elif output_format == \"yaml\":\n            import yaml\n            output = yaml.dump(result.to_dict(), default_flow_style=False)\n            console.print(output)\n        else:  # json\n            output = json.dumps(result.to_dict(), indent=2)\n            console.print_json(output)\n        \n        # Save result if requested\n        if save_result:\n            with open(save_result, 'w') as f:\n                json.dump(result.to_dict(), f, indent=2)\n            console.print(f\"Result saved to: {save_result}\", style=\"green\")\n        \n        # Show processing stats if debug\n        if debug:\n            stats = processor.get_statistics()\n            console.print(f\"\\nProcessing Stats: {stats}\", style=\"dim\")\n        \n    except (ProcessingError, ValidationError) as e:\n        console.print(f\"Processing Error: {e}\", style=\"bold red\")\n        raise typer.Exit(1)\n    except Exception as e:\n        console.print(f\"Unexpected Error: {e}\", style=\"bold red\")\n        if debug:\n            console.print_exception()\n        raise typer.Exit(1)\n\n\n@app.command()\ndef batch(\n    input_file: str = typer.Argument(..., help=\"Input file with data to process\"),\n    processor_type: str = typer.Option(\"sample\", help=\"Type of processor to use\"),\n    output_file: Optional[str] = typer.Option(None, \"--output\", \"-o\", help=\"Output file for results\"),\n    config_file: Optional[str] = typer.Option(None, \"--config\", \"-c\", help=\"Configuration file\"),\n    max_items: int = typer.Option(100, help=\"Maximum items to process\"),\n    show_progress: bool = typer.Option(True, help=\"Show progress bar\"),\n):\n    \"\"\"\n    Process multiple items from a file in batch mode.\n    \n    Input file should contain JSON lines or a JSON array.\n    \n    Examples:\n        sample-project batch data.jsonl --output results.json\n        sample-project batch data.json --max-items 50 --no-show-progress\n    \"\"\"\n    try:\n        # Load input data\n        with open(input_file, 'r') as f:\n            if input_file.endswith('.jsonl'):\n                data_items = [json.loads(line.strip()) for line in f if line.strip()]\n            else:\n                content = json.load(f)\n                data_items = content if isinstance(content, list) else [content]\n        \n        console.print(f\"Loaded {len(data_items)} items from {input_file}\")\n        \n        # Load configuration\n        config = load_config(config_file) if config_file else Config()\n        config.max_items = max_items\n        \n        # Create processor\n        processor = create_processor(processor_type, config)\n        \n        # Process batch\n        start_time = time.time()\n        \n        if show_progress:\n            results = []\n            for item in track(data_items[:max_items], description=\"Processing items...\"):\n                try:\n                    result = processor.process(item)\n                    results.append(result)\n                except Exception as e:\n                    console.print(f\"Failed to process item: {e}\", style=\"yellow\")\n                    results.append({\"success\": False, \"error\": str(e)})\n        else:\n            results = processor.process_batch(data_items[:max_items])\n        \n        processing_time = time.time() - start_time\n        \n        # Prepare output\n        output_data = {\n            \"batch_info\": {\n                \"total_items\": len(results),\n                \"processing_time\": processing_time,\n                \"processor_type\": processor_type,\n                \"config\": config.to_dict()\n            },\n            \"results\": [r.to_dict() if hasattr(r, 'to_dict') else r for r in results]\n        }\n        \n        # Save or display results\n        if output_file:\n            with open(output_file, 'w') as f:\n                json.dump(output_data, f, indent=2)\n            console.print(f\"Batch results saved to: {output_file}\", style=\"green\")\n        else:\n            console.print_json(json.dumps(output_data, indent=2))\n        \n        # Show summary\n        successful = sum(1 for r in results if getattr(r, 'success', True))\n        console.print(f\"\\nBatch Summary: {successful}/{len(results)} successful\", style=\"bold\")\n        \n    except FileNotFoundError:\n        console.print(f\"Input file not found: {input_file}\", style=\"bold red\")\n        raise typer.Exit(1)\n    except json.JSONDecodeError as e:\n        console.print(f\"Invalid JSON in input file: {e}\", style=\"bold red\")\n        raise typer.Exit(1)\n    except Exception as e:\n        console.print(f\"Batch processing failed: {e}\", style=\"bold red\")\n        raise typer.Exit(1)\n\n\n@app.command()\ndef config(\n    action: str = typer.Argument(..., help=\"Action: show, create, validate\"),\n    config_file: Optional[str] = typer.Option(\"sample_config.json\", \"--file\", \"-f\", help=\"Configuration file path\"),\n    debug: bool = typer.Option(False, help=\"Debug mode\"),\n    max_items: int = typer.Option(100, help=\"Maximum items to process\"),\n    cache_enabled: bool = typer.Option(True, help=\"Enable caching\"),\n):\n    \"\"\"\n    Manage configuration files.\n    \n    Actions:\n        show: Display current configuration\n        create: Create a new configuration file\n        validate: Validate an existing configuration file\n    \n    Examples:\n        sample-project config show --file my_config.json\n        sample-project config create --debug --max-items 200\n        sample-project config validate --file production.json\n    \"\"\"\n    try:\n        if action == \"show\":\n            if Path(config_file).exists():\n                config = load_config(config_file)\n                console.print(f\"Configuration from {config_file}:\")\n                console.print_json(json.dumps(config.to_dict(), indent=2))\n            else:\n                console.print(f\"Configuration file not found: {config_file}\", style=\"yellow\")\n                console.print(\"Using default configuration:\")\n                config = Config()\n                console.print_json(json.dumps(config.to_dict(), indent=2))\n        \n        elif action == \"create\":\n            config = Config(\n                debug=debug,\n                max_items=max_items,\n                cache_enabled=cache_enabled\n            )\n            save_config(config, config_file)\n            console.print(f\"Configuration created: {config_file}\", style=\"green\")\n            console.print_json(json.dumps(config.to_dict(), indent=2))\n        \n        elif action == \"validate\":\n            if not Path(config_file).exists():\n                console.print(f\"Configuration file not found: {config_file}\", style=\"bold red\")\n                raise typer.Exit(1)\n            \n            try:\n                config = load_config(config_file)\n                console.print(f\"✓ Configuration is valid: {config_file}\", style=\"green\")\n                \n                # Additional validation checks\n                issues = []\n                if config.max_items <= 0:\n                    issues.append(\"max_items must be positive\")\n                if config.max_size <= 0:\n                    issues.append(\"max_size must be positive\")\n                \n                if issues:\n                    console.print(\"⚠ Configuration issues found:\", style=\"yellow\")\n                    for issue in issues:\n                        console.print(f\"  - {issue}\")\n                else:\n                    console.print(\"✓ All validation checks passed\", style=\"green\")\n                    \n            except Exception as e:\n                console.print(f\"✗ Configuration is invalid: {e}\", style=\"bold red\")\n                raise typer.Exit(1)\n        \n        else:\n            console.print(f\"Unknown action: {action}\", style=\"bold red\")\n            console.print(\"Available actions: show, create, validate\")\n            raise typer.Exit(1)\n    \n    except Exception as e:\n        console.print(f\"Configuration command failed: {e}\", style=\"bold red\")\n        raise typer.Exit(1)\n\n\n@app.command()\ndef stats(\n    processor_type: str = typer.Option(\"sample\", help=\"Type of processor\"),\n    config_file: Optional[str] = typer.Option(None, \"--config\", \"-c\", help=\"Configuration file\"),\n    reset: bool = typer.Option(False, \"--reset\", help=\"Reset statistics\"),\n):\n    \"\"\"\n    Show or reset processor statistics.\n    \n    Examples:\n        sample-project stats --processor-type sample\n        sample-project stats --reset\n    \"\"\"\n    try:\n        config = load_config(config_file) if config_file else Config()\n        processor = create_processor(processor_type, config)\n        \n        if reset:\n            processor.reset_counters()\n            processor.clear_cache()\n            console.print(\"Statistics reset\", style=\"green\")\n        else:\n            stats = processor.get_statistics()\n            \n            table = Table(title=f\"{processor_type.title()} Processor Statistics\")\n            table.add_column(\"Metric\", style=\"cyan\")\n            table.add_column(\"Value\", style=\"green\")\n            \n            for key, value in stats.items():\n                table.add_row(key.replace('_', ' ').title(), str(value))\n            \n            console.print(table)\n    \n    except Exception as e:\n        console.print(f\"Stats command failed: {e}\", style=\"bold red\")\n        raise typer.Exit(1)\n\n\n@app.command()\ndef interactive():\n    \"\"\"\n    Start an interactive session for data processing.\n    \n    This provides a REPL-like interface for experimenting with the processors.\n    \"\"\"\n    console.print(\"Welcome to Sample Project Interactive Mode!\", style=\"bold green\")\n    console.print(\"Type 'help' for available commands, 'exit' to quit.\\n\")\n    \n    config = Config(debug=True)\n    processor = create_processor(\"sample\", config)\n    \n    while True:\n        try:\n            user_input = console.input(\"[bold blue]sample-project>[/bold blue] \").strip()\n            \n            if not user_input:\n                continue\n            \n            if user_input.lower() in ['exit', 'quit']:\n                console.print(\"Goodbye!\", style=\"green\")\n                break\n            \n            if user_input.lower() == 'help':\n                _show_interactive_help()\n                continue\n            \n            if user_input.startswith('config '):\n                config_cmd = user_input[7:].strip()\n                if config_cmd == 'show':\n                    console.print_json(json.dumps(config.to_dict(), indent=2))\n                continue\n            \n            if user_input.startswith('stats'):\n                stats = processor.get_statistics()\n                console.print(f\"Statistics: {stats}\")\n                continue\n            \n            # Process the input\n            try:\n                result = processor.process(user_input)\n                console.print(\"Result:\", style=\"bold\")\n                console.print_json(json.dumps(result.to_dict(), indent=2))\n            except Exception as e:\n                console.print(f\"Processing Error: {e}\", style=\"red\")\n        \n        except KeyboardInterrupt:\n            console.print(\"\\nGoodbye!\", style=\"green\")\n            break\n        except EOFError:\n            console.print(\"\\nGoodbye!\", style=\"green\")\n            break\n\n\ndef _show_interactive_help():\n    \"\"\"Show help for interactive mode.\"\"\"\n    help_table = Table(title=\"Interactive Mode Commands\")\n    help_table.add_column(\"Command\", style=\"cyan\")\n    help_table.add_column(\"Description\", style=\"white\")\n    \n    commands = [\n        (\"help\", \"Show this help message\"),\n        (\"config show\", \"Show current configuration\"),\n        (\"stats\", \"Show processor statistics\"),\n        (\"exit/quit\", \"Exit interactive mode\"),\n        (\"<data>\", \"Process any data input\"),\n    ]\n    \n    for command, description in commands:\n        help_table.add_row(command, description)\n    \n    console.print(help_table)\n\n\ndef _display_result_table(result, processing_time):\n    \"\"\"Display processing result in table format.\"\"\"\n    table = Table(title=\"Processing Result\")\n    table.add_column(\"Field\", style=\"cyan\")\n    table.add_column(\"Value\", style=\"green\")\n    \n    table.add_row(\"Success\", str(result.success))\n    table.add_row(\"Processing Time\", f\"{processing_time:.3f}s\")\n    \n    if result.content:\n        content_str = str(result.content)[:100] + \"...\" if len(str(result.content)) > 100 else str(result.content)\n        table.add_row(\"Content\", content_str)\n    \n    if result.error:\n        table.add_row(\"Error\", result.error)\n    \n    if result.metadata:\n        for key, value in result.metadata.items():\n            table.add_row(f\"Meta: {key}\", str(value))\n    \n    console.print(table)\n\n\n# Click-based alternative commands (for demonstration)\n@click.group()\n@click.version_option(version=__version__)\ndef cli():\n    \"\"\"Alternative Click-based CLI interface.\"\"\"\n    pass\n\n\n@cli.command()\n@click.argument('data')\n@click.option('--debug/--no-debug', default=False, help='Enable debug mode')\n@click.option('--format', type=click.Choice(['json', 'yaml', 'table']), default='json')\ndef click_process(data, debug, format):\n    \"\"\"Process data using Click interface.\"\"\"\n    config = Config(debug=debug)\n    processor = SampleProcessor(config)\n    \n    try:\n        result = processor.process(data)\n        \n        if format == 'json':\n            click.echo(json.dumps(result.to_dict(), indent=2))\n        elif format == 'table':\n            click.echo(f\"Success: {result.success}\")\n            click.echo(f\"Content: {result.content}\")\n        \n    except Exception as e:\n        click.echo(f\"Error: {e}\", err=True)\n        sys.exit(1)\n\n\n# Entry point for console scripts\ndef main():\n    \"\"\"Main entry point for the CLI application.\"\"\"\n    try:\n        app()\n    except KeyboardInterrupt:\n        console.print(\"\\nOperation cancelled by user.\", style=\"yellow\")\n        sys.exit(1)\n    except Exception as e:\n        console.print(f\"Unexpected error: {e}\", style=\"bold red\")\n        sys.exit(1)\n\n\n# Alternative entry point for Click\ndef click_main():\n    \"\"\"Entry point for Click-based CLI.\"\"\"\n    cli()\n\n\nif __name__ == \"__main__\":\n    main()\n",
+        "docstring": "Command-line interface for the Sample Project.\n\nThis module provides a comprehensive CLI for interacting with the sample project,\nincluding data processing, configuration management, and various utility commands.",
+        "description": "Command-line interface script",
+        "argument_parser": {
+          "program_name": null,
+          "description": null,
+          "arguments": []
+        }
+      }
+    ],
+    "setup_scripts": [],
+    "package_entry_points": [
+      {
+        "type": "console_script",
+        "name": "sample-cli",
+        "entry_point": "sample_project.cli:main",
+        "usage": "sample-cli",
+        "description": "Console script: sample-cli"
+      },
+      {
+        "type": "console_script",
+        "name": "sample-tool",
+        "entry_point": "sample_project.main:run_tool",
+        "usage": "sample-tool",
+        "description": "Console script: sample-tool"
+      },
+      {
+        "type": "entry_point",
+        "group": "console_scripts",
+        "name": "sample-project",
+        "entry_point": "sample_project.cli:main",
+        "usage": "sample-project",
+        "description": "Entry point: console_scripts.sample-project"
+      },
+      {
+        "type": "entry_point",
+        "group": "sample_project.plugins",
+        "name": "default",
+        "entry_point": "sample_project.plugins:DefaultPlugin",
+        "usage": "sample_project.plugins:default",
+        "description": "Entry point: sample_project.plugins.default"
+      },
+      {
+        "type": "entry_point",
+        "group": "sample_project.plugins",
+        "name": "advanced",
+        "entry_point": "sample_project.plugins:AdvancedPlugin",
+        "usage": "sample_project.plugins:advanced",
+        "description": "Entry point: sample_project.plugins.advanced"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "setup",
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\setup.py",
+      "docstring": "Setup configuration for sample-project.\n\nThis file provides backward compatibility for systems that don't support\nPEP 517/518 build systems. Modern installations should prefer pyproject.toml.",
+      "classes": [],
+      "functions": [
+        {
+          "name": "get_version",
+          "docstring": "Extract version from package __init__.py",
+          "decorators": [],
+          "args": []
+        },
+        {
+          "name": "get_long_description",
+          "docstring": "Read long description from README file",
+          "decorators": [],
+          "args": []
+        },
+        {
+          "name": "get_requirements",
+          "docstring": "Read requirements from requirements file",
+          "decorators": [],
+          "args": [
+            "filename"
+          ]
+        }
+      ],
+      "imports": [
+        "from setuptools import setup",
+        "from setuptools import find_packages",
+        "from pathlib import Path",
+        "re"
+      ],
+      "constants": []
+    },
+    {
+      "name": "cli",
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "docstring": "Command-line interface for the Sample Project.\n\nThis module provides a comprehensive CLI for interacting with the sample project,\nincluding data processing, configuration management, and various utility commands.",
+      "classes": [
+        {
+          "name": "CLIError",
+          "docstring": "Custom exception for CLI-related errors.",
+          "methods": [],
+          "bases": [
+            "Exception"
+          ],
+          "decorators": []
+        }
+      ],
+      "functions": [
+        {
+          "name": "version",
+          "docstring": "Show version information.",
+          "decorators": [
+            "<ast.Call object at 0x0000021E1C441F90>"
+          ],
+          "args": []
+        },
+        {
+          "name": "process",
+          "docstring": "Process input data using the specified processor.\n\nExamples:\n    sample-project process \"Hello World\" --debug\n    sample-project process '{\"name\": \"test\", \"value\": 42}' --processor-type data\n    sample-project process \"batch data\" --save results.json",
+          "decorators": [
+            "<ast.Call object at 0x0000021E1C3A8B50>"
+          ],
+          "args": [
+            "input_data",
+            "processor_type",
+            "config_file",
+            "output_format",
+            "debug",
+            "async_mode",
+            "save_result"
+          ]
+        },
+        {
+          "name": "batch",
+          "docstring": "Process multiple items from a file in batch mode.\n\nInput file should contain JSON lines or a JSON array.\n\nExamples:\n    sample-project batch data.jsonl --output results.json\n    sample-project batch data.json --max-items 50 --no-show-progress",
+          "decorators": [
+            "<ast.Call object at 0x0000021E1C43D390>"
+          ],
+          "args": [
+            "input_file",
+            "processor_type",
+            "output_file",
+            "config_file",
+            "max_items",
+            "show_progress"
+          ]
+        },
+        {
+          "name": "config",
+          "docstring": "Manage configuration files.\n\nActions:\n    show: Display current configuration\n    create: Create a new configuration file\n    validate: Validate an existing configuration file\n\nExamples:\n    sample-project config show --file my_config.json\n    sample-project config create --debug --max-items 200\n    sample-project config validate --file production.json",
+          "decorators": [
+            "<ast.Call object at 0x0000021E1C3B5250>"
+          ],
+          "args": [
+            "action",
+            "config_file",
+            "debug",
+            "max_items",
+            "cache_enabled"
+          ]
+        },
+        {
+          "name": "stats",
+          "docstring": "Show or reset processor statistics.\n\nExamples:\n    sample-project stats --processor-type sample\n    sample-project stats --reset",
+          "decorators": [
+            "<ast.Call object at 0x0000021E1C415050>"
+          ],
+          "args": [
+            "processor_type",
+            "config_file",
+            "reset"
+          ]
+        },
+        {
+          "name": "interactive",
+          "docstring": "Start an interactive session for data processing.\n\nThis provides a REPL-like interface for experimenting with the processors.",
+          "decorators": [
+            "<ast.Call object at 0x0000021E1C3F3ED0>"
+          ],
+          "args": []
+        },
+        {
+          "name": "_show_interactive_help",
+          "docstring": "Show help for interactive mode.",
+          "decorators": [],
+          "args": []
+        },
+        {
+          "name": "_display_result_table",
+          "docstring": "Display processing result in table format.",
+          "decorators": [],
+          "args": [
+            "result",
+            "processing_time"
+          ]
+        },
+        {
+          "name": "cli",
+          "docstring": "Alternative Click-based CLI interface.",
+          "decorators": [
+            "<ast.Call object at 0x0000021E1C40F250>",
+            "<ast.Call object at 0x0000021E1C40F450>"
+          ],
+          "args": []
+        },
+        {
+          "name": "click_process",
+          "docstring": "Process data using Click interface.",
+          "decorators": [
+            "<ast.Call object at 0x0000021E1C426B50>",
+            "<ast.Call object at 0x0000021E1C426D50>",
+            "<ast.Call object at 0x0000021E1C426FD0>",
+            "<ast.Call object at 0x0000021E1C427450>"
+          ],
+          "args": [
+            "data",
+            "debug",
+            "format"
+          ]
+        },
+        {
+          "name": "main",
+          "docstring": "Main entry point for the CLI application.",
+          "decorators": [],
+          "args": []
+        },
+        {
+          "name": "click_main",
+          "docstring": "Entry point for Click-based CLI.",
+          "decorators": [],
+          "args": []
+        }
+      ],
+      "imports": [
+        "argparse",
+        "asyncio",
+        "json",
+        "sys",
+        "time",
+        "from pathlib import Path",
+        "from typing import Any",
+        "from typing import Dict",
+        "from typing import List",
+        "from typing import Optional",
+        "click",
+        "typer",
+        "from rich.console import Console",
+        "from rich.table import Table",
+        "from rich.progress import track",
+        "from main import SampleProcessor",
+        "from main import DataProcessor",
+        "from main import create_processor",
+        "from main import ProcessingError",
+        "from config import Config",
+        "from config import load_config",
+        "from config import save_config",
+        "from models import DataModel",
+        "from models import ValidationError",
+        "from utils import format_output",
+        "from utils import validate_input"
+      ],
+      "constants": [],
+      "source_code": "\"\"\"\nCommand-line interface for the Sample Project.\n\nThis module provides a comprehensive CLI for interacting with the sample project,\nincluding data processing, configuration management, and various utility commands.\n\"\"\"\n\nimport argparse\nimport asyncio\nimport json\nimport sys\nimport time\nfrom pathlib import Path\nfrom typing import Any, Dict, List, Optional\n\nimport click\nimport typer\nfrom rich.console import Console\nfrom rich.table import Table\nfrom rich.progress import track\n\nfrom .main import SampleProcessor, DataProcessor, create_processor, ProcessingError\nfrom .config import Config, load_config, save_config\nfrom .models import DataModel, ValidationError\nfrom .utils import format_output, validate_input\n\n# Initialize rich console for beautiful output\nconsole = Console()\n\n# Typer app for modern CLI\napp = typer.Typer(\n    name=\"sample-project\",\n    help=\"A comprehensive sample project CLI for data processing and management.\",\n    add_completion=False,\n    rich_markup_mode=\"rich\"\n)\n\n# Version information\n__version__ = \"1.2.3\"\n\n\nclass CLIError(Exception):\n    \"\"\"Custom exception for CLI-related errors.\"\"\"\n    pass\n\n\n@app.command()\ndef version():\n    \"\"\"Show version information.\"\"\"\n    console.print(f\"Sample Project CLI v{__version__}\", style=\"bold green\")\n    console.print(f\"Python: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}\")\n\n\n@app.command()\ndef process(\n    input_data: str = typer.Argument(..., help=\"Input data to process\"),\n    processor_type: str = typer.Option(\"sample\", help=\"Type of processor to use\"),\n    config_file: Optional[str] = typer.Option(None, \"--config\", \"-c\", help=\"Configuration file path\"),\n    output_format: str = typer.Option(\"json\", help=\"Output format (json, yaml, table)\"),\n    debug: bool = typer.Option(False, \"--debug\", help=\"Enable debug mode\"),\n    async_mode: bool = typer.Option(False, \"--async\", help=\"Use async processing\"),\n    save_result: Optional[str] = typer.Option(None, \"--save\", help=\"Save result to file\"),\n):\n    \"\"\"\n    Process input data using the specified processor.\n    \n    Examples:\n        sample-project process \"Hello World\" --debug\n        sample-project process '{\"name\": \"test\", \"value\": 42}' --processor-type data\n        sample-project process \"batch data\" --save results.json\n    \"\"\"\n    try:\n        # Load configuration\n        if config_file:\n            config = load_config(config_file)\n            console.print(f\"Loaded config from: {config_file}\", style=\"dim\")\n        else:\n            config = Config()\n        \n        # Override config with CLI options\n        if debug:\n            config.debug = debug\n        \n        # Create processor\n        processor = create_processor(processor_type, config)\n        \n        # Process data\n        start_time = time.time()\n        \n        if async_mode:\n            result = asyncio.run(processor.process_async(input_data))\n        else:\n            result = processor.process(input_data)\n        \n        processing_time = time.time() - start_time\n        \n        # Format and display output\n        if output_format == \"table\":\n            _display_result_table(result, processing_time)\n        elif output_format == \"yaml\":\n            import yaml\n            output = yaml.dump(result.to_dict(), default_flow_style=False)\n            console.print(output)\n        else:  # json\n            output = json.dumps(result.to_dict(), indent=2)\n            console.print_json(output)\n        \n        # Save result if requested\n        if save_result:\n            with open(save_result, 'w') as f:\n                json.dump(result.to_dict(), f, indent=2)\n            console.print(f\"Result saved to: {save_result}\", style=\"green\")\n        \n        # Show processing stats if debug\n        if debug:\n            stats = processor.get_statistics()\n            console.print(f\"\\nProcessing Stats: {stats}\", style=\"dim\")\n        \n    except (ProcessingError, ValidationError) as e:\n        console.print(f\"Processing Error: {e}\", style=\"bold red\")\n        raise typer.Exit(1)\n    except Exception as e:\n        console.print(f\"Unexpected Error: {e}\", style=\"bold red\")\n        if debug:\n            console.print_exception()\n        raise typer.Exit(1)\n\n\n@app.command()\ndef batch(\n    input_file: str = typer.Argument(..., help=\"Input file with data to process\"),\n    processor_type: str = typer.Option(\"sample\", help=\"Type of processor to use\"),\n    output_file: Optional[str] = typer.Option(None, \"--output\", \"-o\", help=\"Output file for results\"),\n    config_file: Optional[str] = typer.Option(None, \"--config\", \"-c\", help=\"Configuration file\"),\n    max_items: int = typer.Option(100, help=\"Maximum items to process\"),\n    show_progress: bool = typer.Option(True, help=\"Show progress bar\"),\n):\n    \"\"\"\n    Process multiple items from a file in batch mode.\n    \n    Input file should contain JSON lines or a JSON array.\n    \n    Examples:\n        sample-project batch data.jsonl --output results.json\n        sample-project batch data.json --max-items 50 --no-show-progress\n    \"\"\"\n    try:\n        # Load input data\n        with open(input_file, 'r') as f:\n            if input_file.endswith('.jsonl'):\n                data_items = [json.loads(line.strip()) for line in f if line.strip()]\n            else:\n                content = json.load(f)\n                data_items = content if isinstance(content, list) else [content]\n        \n        console.print(f\"Loaded {len(data_items)} items from {input_file}\")\n        \n        # Load configuration\n        config = load_config(config_file) if config_file else Config()\n        config.max_items = max_items\n        \n        # Create processor\n        processor = create_processor(processor_type, config)\n        \n        # Process batch\n        start_time = time.time()\n        \n        if show_progress:\n            results = []\n            for item in track(data_items[:max_items], description=\"Processing items...\"):\n                try:\n                    result = processor.process(item)\n                    results.append(result)\n                except Exception as e:\n                    console.print(f\"Failed to process item: {e}\", style=\"yellow\")\n                    results.append({\"success\": False, \"error\": str(e)})\n        else:\n            results = processor.process_batch(data_items[:max_items])\n        \n        processing_time = time.time() - start_time\n        \n        # Prepare output\n        output_data = {\n            \"batch_info\": {\n                \"total_items\": len(results),\n                \"processing_time\": processing_time,\n                \"processor_type\": processor_type,\n                \"config\": config.to_dict()\n            },\n            \"results\": [r.to_dict() if hasattr(r, 'to_dict') else r for r in results]\n        }\n        \n        # Save or display results\n        if output_file:\n            with open(output_file, 'w') as f:\n                json.dump(output_data, f, indent=2)\n            console.print(f\"Batch results saved to: {output_file}\", style=\"green\")\n        else:\n            console.print_json(json.dumps(output_data, indent=2))\n        \n        # Show summary\n        successful = sum(1 for r in results if getattr(r, 'success', True))\n        console.print(f\"\\nBatch Summary: {successful}/{len(results)} successful\", style=\"bold\")\n        \n    except FileNotFoundError:\n        console.print(f\"Input file not found: {input_file}\", style=\"bold red\")\n        raise typer.Exit(1)\n    except json.JSONDecodeError as e:\n        console.print(f\"Invalid JSON in input file: {e}\", style=\"bold red\")\n        raise typer.Exit(1)\n    except Exception as e:\n        console.print(f\"Batch processing failed: {e}\", style=\"bold red\")\n        raise typer.Exit(1)\n\n\n@app.command()\ndef config(\n    action: str = typer.Argument(..., help=\"Action: show, create, validate\"),\n    config_file: Optional[str] = typer.Option(\"sample_config.json\", \"--file\", \"-f\", help=\"Configuration file path\"),\n    debug: bool = typer.Option(False, help=\"Debug mode\"),\n    max_items: int = typer.Option(100, help=\"Maximum items to process\"),\n    cache_enabled: bool = typer.Option(True, help=\"Enable caching\"),\n):\n    \"\"\"\n    Manage configuration files.\n    \n    Actions:\n        show: Display current configuration\n        create: Create a new configuration file\n        validate: Validate an existing configuration file\n    \n    Examples:\n        sample-project config show --file my_config.json\n        sample-project config create --debug --max-items 200\n        sample-project config validate --file production.json\n    \"\"\"\n    try:\n        if action == \"show\":\n            if Path(config_file).exists():\n                config = load_config(config_file)\n                console.print(f\"Configuration from {config_file}:\")\n                console.print_json(json.dumps(config.to_dict(), indent=2))\n            else:\n                console.print(f\"Configuration file not found: {config_file}\", style=\"yellow\")\n                console.print(\"Using default configuration:\")\n                config = Config()\n                console.print_json(json.dumps(config.to_dict(), indent=2))\n        \n        elif action == \"create\":\n            config = Config(\n                debug=debug,\n                max_items=max_items,\n                cache_enabled=cache_enabled\n            )\n            save_config(config, config_file)\n            console.print(f\"Configuration created: {config_file}\", style=\"green\")\n            console.print_json(json.dumps(config.to_dict(), indent=2))\n        \n        elif action == \"validate\":\n            if not Path(config_file).exists():\n                console.print(f\"Configuration file not found: {config_file}\", style=\"bold red\")\n                raise typer.Exit(1)\n            \n            try:\n                config = load_config(config_file)\n                console.print(f\"✓ Configuration is valid: {config_file}\", style=\"green\")\n                \n                # Additional validation checks\n                issues = []\n                if config.max_items <= 0:\n                    issues.append(\"max_items must be positive\")\n                if config.max_size <= 0:\n                    issues.append(\"max_size must be positive\")\n                \n                if issues:\n                    console.print(\"⚠ Configuration issues found:\", style=\"yellow\")\n                    for issue in issues:\n                        console.print(f\"  - {issue}\")\n                else:\n                    console.print(\"✓ All validation checks passed\", style=\"green\")\n                    \n            except Exception as e:\n                console.print(f\"✗ Configuration is invalid: {e}\", style=\"bold red\")\n                raise typer.Exit(1)\n        \n        else:\n            console.print(f\"Unknown action: {action}\", style=\"bold red\")\n            console.print(\"Available actions: show, create, validate\")\n            raise typer.Exit(1)\n    \n    except Exception as e:\n        console.print(f\"Configuration command failed: {e}\", style=\"bold red\")\n        raise typer.Exit(1)\n\n\n@app.command()\ndef stats(\n    processor_type: str = typer.Option(\"sample\", help=\"Type of processor\"),\n    config_file: Optional[str] = typer.Option(None, \"--config\", \"-c\", help=\"Configuration file\"),\n    reset: bool = typer.Option(False, \"--reset\", help=\"Reset statistics\"),\n):\n    \"\"\"\n    Show or reset processor statistics.\n    \n    Examples:\n        sample-project stats --processor-type sample\n        sample-project stats --reset\n    \"\"\"\n    try:\n        config = load_config(config_file) if config_file else Config()\n        processor = create_processor(processor_type, config)\n        \n        if reset:\n            processor.reset_counters()\n            processor.clear_cache()\n            console.print(\"Statistics reset\", style=\"green\")\n        else:\n            stats = processor.get_statistics()\n            \n            table = Table(title=f\"{processor_type.title()} Processor Statistics\")\n            table.add_column(\"Metric\", style=\"cyan\")\n            table.add_column(\"Value\", style=\"green\")\n            \n            for key, value in stats.items():\n                table.add_row(key.replace('_', ' ').title(), str(value))\n            \n            console.print(table)\n    \n    except Exception as e:\n        console.print(f\"Stats command failed: {e}\", style=\"bold red\")\n        raise typer.Exit(1)\n\n\n@app.command()\ndef interactive():\n    \"\"\"\n    Start an interactive session for data processing.\n    \n    This provides a REPL-like interface for experimenting with the processors.\n    \"\"\"\n    console.print(\"Welcome to Sample Project Interactive Mode!\", style=\"bold green\")\n    console.print(\"Type 'help' for available commands, 'exit' to quit.\\n\")\n    \n    config = Config(debug=True)\n    processor = create_processor(\"sample\", config)\n    \n    while True:\n        try:\n            user_input = console.input(\"[bold blue]sample-project>[/bold blue] \").strip()\n            \n            if not user_input:\n                continue\n            \n            if user_input.lower() in ['exit', 'quit']:\n                console.print(\"Goodbye!\", style=\"green\")\n                break\n            \n            if user_input.lower() == 'help':\n                _show_interactive_help()\n                continue\n            \n            if user_input.startswith('config '):\n                config_cmd = user_input[7:].strip()\n                if config_cmd == 'show':\n                    console.print_json(json.dumps(config.to_dict(), indent=2))\n                continue\n            \n            if user_input.startswith('stats'):\n                stats = processor.get_statistics()\n                console.print(f\"Statistics: {stats}\")\n                continue\n            \n            # Process the input\n            try:\n                result = processor.process(user_input)\n                console.print(\"Result:\", style=\"bold\")\n                console.print_json(json.dumps(result.to_dict(), indent=2))\n            except Exception as e:\n                console.print(f\"Processing Error: {e}\", style=\"red\")\n        \n        except KeyboardInterrupt:\n            console.print(\"\\nGoodbye!\", style=\"green\")\n            break\n        except EOFError:\n            console.print(\"\\nGoodbye!\", style=\"green\")\n            break\n\n\ndef _show_interactive_help():\n    \"\"\"Show help for interactive mode.\"\"\"\n    help_table = Table(title=\"Interactive Mode Commands\")\n    help_table.add_column(\"Command\", style=\"cyan\")\n    help_table.add_column(\"Description\", style=\"white\")\n    \n    commands = [\n        (\"help\", \"Show this help message\"),\n        (\"config show\", \"Show current configuration\"),\n        (\"stats\", \"Show processor statistics\"),\n        (\"exit/quit\", \"Exit interactive mode\"),\n        (\"<data>\", \"Process any data input\"),\n    ]\n    \n    for command, description in commands:\n        help_table.add_row(command, description)\n    \n    console.print(help_table)\n\n\ndef _display_result_table(result, processing_time):\n    \"\"\"Display processing result in table format.\"\"\"\n    table = Table(title=\"Processing Result\")\n    table.add_column(\"Field\", style=\"cyan\")\n    table.add_column(\"Value\", style=\"green\")\n    \n    table.add_row(\"Success\", str(result.success))\n    table.add_row(\"Processing Time\", f\"{processing_time:.3f}s\")\n    \n    if result.content:\n        content_str = str(result.content)[:100] + \"...\" if len(str(result.content)) > 100 else str(result.content)\n        table.add_row(\"Content\", content_str)\n    \n    if result.error:\n        table.add_row(\"Error\", result.error)\n    \n    if result.metadata:\n        for key, value in result.metadata.items():\n            table.add_row(f\"Meta: {key}\", str(value))\n    \n    console.print(table)\n\n\n# Click-based alternative commands (for demonstration)\n@click.group()\n@click.version_option(version=__version__)\ndef cli():\n    \"\"\"Alternative Click-based CLI interface.\"\"\"\n    pass\n\n\n@cli.command()\n@click.argument('data')\n@click.option('--debug/--no-debug', default=False, help='Enable debug mode')\n@click.option('--format', type=click.Choice(['json', 'yaml', 'table']), default='json')\ndef click_process(data, debug, format):\n    \"\"\"Process data using Click interface.\"\"\"\n    config = Config(debug=debug)\n    processor = SampleProcessor(config)\n    \n    try:\n        result = processor.process(data)\n        \n        if format == 'json':\n            click.echo(json.dumps(result.to_dict(), indent=2))\n        elif format == 'table':\n            click.echo(f\"Success: {result.success}\")\n            click.echo(f\"Content: {result.content}\")\n        \n    except Exception as e:\n        click.echo(f\"Error: {e}\", err=True)\n        sys.exit(1)\n\n\n# Entry point for console scripts\ndef main():\n    \"\"\"Main entry point for the CLI application.\"\"\"\n    try:\n        app()\n    except KeyboardInterrupt:\n        console.print(\"\\nOperation cancelled by user.\", style=\"yellow\")\n        sys.exit(1)\n    except Exception as e:\n        console.print(f\"Unexpected error: {e}\", style=\"bold red\")\n        sys.exit(1)\n\n\n# Alternative entry point for Click\ndef click_main():\n    \"\"\"Entry point for Click-based CLI.\"\"\"\n    cli()\n\n\nif __name__ == \"__main__\":\n    main()\n"
+    },
+    {
+      "name": "config",
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\config.py",
+      "docstring": "Configuration management for the Sample Project.\n\nThis module provides comprehensive configuration handling including\nloading from files, environment variables, and runtime settings.",
+      "classes": [
+        {
+          "name": "LogLevel",
+          "docstring": "Enumeration of supported log levels.",
+          "methods": [],
+          "bases": [
+            "Enum"
+          ],
+          "decorators": []
+        },
+        {
+          "name": "ConfigError",
+          "docstring": "Raised when configuration operations fail.",
+          "methods": [],
+          "bases": [
+            "Exception"
+          ],
+          "decorators": []
+        },
+        {
+          "name": "Config",
+          "docstring": "Main configuration class for the Sample Project.\n\nThis class manages all configuration settings including\nprocessing parameters, system settings, and feature flags.\n\nAttributes:\n    debug: Enable debug mode\n    max_items: Maximum number of items to process\n    max_size: Maximum size limit for data processing\n    timeout: Timeout in seconds for operations\n    cache_enabled: Whether to enable result caching\n    log_level: Logging level\n    output_format: Default output format\n    \n    # Processing options\n    uppercase: Convert strings to uppercase during processing\n    multiply_factor: Multiplication factor for numeric processing\n    \n    # Advanced settings\n    parallel_processing: Enable parallel processing\n    max_workers: Maximum number of worker threads\n    retry_attempts: Number of retry attempts for failed operations\n    retry_delay: Delay between retries in seconds\n    \n    # Feature flags\n    experimental_features: Enable experimental features\n    strict_validation: Enable strict input validation\n    \n    # File and directory settings\n    data_directory: Directory for data files\n    output_directory: Directory for output files\n    temp_directory: Temporary directory for processing\n    \n    # External service settings\n    api_endpoints: Dictionary of external API endpoints\n    api_timeouts: Timeout settings for external APIs\n    api_keys: API keys for external services\n    \nExample:\n    >>> config = Config(debug=True, max_items=50)\n    >>> config.debug\n    True\n    >>> config.is_debug_mode()\n    True",
+          "methods": [
+            {
+              "name": "__post_init__",
+              "docstring": "Initialize configuration after instance creation.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "validate",
+              "docstring": "Validate configuration settings.\n\nRaises:\n    ConfigError: If configuration is invalid",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "_load_from_environment",
+              "docstring": "Load configuration values from environment variables.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "to_dict",
+              "docstring": "Convert configuration to dictionary representation.\n\nReturns:\n    Dictionary containing all configuration values",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            }
+          ],
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ]
+        }
+      ],
+      "functions": [],
+      "imports": [
+        "json",
+        "os",
+        "from dataclasses import dataclass",
+        "from dataclasses import field",
+        "from dataclasses import asdict",
+        "from pathlib import Path",
+        "from typing import Any",
+        "from typing import Dict",
+        "from typing import Optional",
+        "from typing import Union",
+        "from typing import List",
+        "logging",
+        "from enum import Enum"
+      ],
+      "constants": []
+    },
+    {
+      "name": "main",
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\main.py",
+      "docstring": "Core business logic and main processing classes.\n\nThis module contains the primary functionality of the sample project,\nincluding data processors, business logic, and core algorithms.",
+      "classes": [
+        {
+          "name": "ProcessingError",
+          "docstring": "Raised when data processing fails.",
+          "methods": [
+            {
+              "name": "__init__",
+              "docstring": null,
+              "decorators": [],
+              "args": [
+                "self",
+                "message",
+                "error_code",
+                "details"
+              ]
+            }
+          ],
+          "bases": [
+            "Exception"
+          ],
+          "decorators": []
+        },
+        {
+          "name": "BaseProcessor",
+          "docstring": "Abstract base class for all data processors.\n\nThis class defines the interface that all processors must implement\nand provides common functionality for error handling and logging.",
+          "methods": [
+            {
+              "name": "__init__",
+              "docstring": "Initialize the processor with configuration.\n\nArgs:\n    config: Configuration object, uses defaults if None",
+              "decorators": [],
+              "args": [
+                "self",
+                "config"
+              ]
+            },
+            {
+              "name": "_setup_processor",
+              "docstring": "Set up processor-specific configuration.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "process",
+              "docstring": "Process input data and return results.\n\nArgs:\n    data: Input data to process\n    \nReturns:\n    Processed data\n    \nRaises:\n    ProcessingError: If processing fails",
+              "decorators": [
+                "abstractmethod"
+              ],
+              "args": [
+                "self",
+                "data"
+              ]
+            },
+            {
+              "name": "validate_input",
+              "docstring": "Validate input data format and content.\n\nArgs:\n    data: Data to validate\n    \nReturns:\n    True if valid, False otherwise",
+              "decorators": [
+                "abstractmethod"
+              ],
+              "args": [
+                "self",
+                "data"
+              ]
+            },
+            {
+              "name": "get_status",
+              "docstring": "Get current processor status.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            }
+          ],
+          "bases": [
+            "ABC"
+          ],
+          "decorators": []
+        },
+        {
+          "name": "SampleProcessor",
+          "docstring": "Main processor class for handling various data processing tasks.\n\nThis processor can handle different types of input data and apply\nvarious transformations based on configuration settings.\n\nAttributes:\n    processed_count: Number of items processed\n    error_count: Number of processing errors\n    \nExample:\n    >>> config = Config(debug=True, max_items=100)\n    >>> processor = SampleProcessor(config)\n    >>> result = processor.process(\"Hello World\")\n    >>> print(result.content)\n    Processed: Hello World",
+          "methods": [
+            {
+              "name": "__init__",
+              "docstring": null,
+              "decorators": [],
+              "args": [
+                "self",
+                "config"
+              ]
+            },
+            {
+              "name": "_initialize_processors",
+              "docstring": "Initialize specialized processors for different data types.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "process",
+              "docstring": "Process input data and return a ResultModel.\n\nArgs:\n    data: Input data of any supported type\n    \nReturns:\n    ResultModel containing processed data and metadata\n    \nRaises:\n    ProcessingError: If processing fails\n    ValidationError: If input validation fails",
+              "decorators": [],
+              "args": [
+                "self",
+                "data"
+              ]
+            },
+            {
+              "name": "process_data_model",
+              "docstring": "Process a DataModel instance with specialized handling.\n\nArgs:\n    model: DataModel instance to process\n    \nReturns:\n    ResultModel with processed model data",
+              "decorators": [],
+              "args": [
+                "self",
+                "model"
+              ]
+            },
+            {
+              "name": "process_batch",
+              "docstring": "Process multiple items in batch.\n\nArgs:\n    data_list: List of data items to process\n    \nReturns:\n    List of ResultModel instances",
+              "decorators": [],
+              "args": [
+                "self",
+                "data_list"
+              ]
+            },
+            {
+              "name": "validate_input",
+              "docstring": "Validate input data.",
+              "decorators": [],
+              "args": [
+                "self",
+                "data"
+              ]
+            },
+            {
+              "name": "_determine_data_type",
+              "docstring": "Determine the type category of input data.",
+              "decorators": [],
+              "args": [
+                "self",
+                "data"
+              ]
+            },
+            {
+              "name": "_process_string",
+              "docstring": "Process string data.",
+              "decorators": [],
+              "args": [
+                "self",
+                "data"
+              ]
+            },
+            {
+              "name": "_process_number",
+              "docstring": "Process numeric data.",
+              "decorators": [],
+              "args": [
+                "self",
+                "data"
+              ]
+            },
+            {
+              "name": "_process_list",
+              "docstring": "Process list data.",
+              "decorators": [],
+              "args": [
+                "self",
+                "data"
+              ]
+            },
+            {
+              "name": "_process_dict",
+              "docstring": "Process dictionary data.",
+              "decorators": [],
+              "args": [
+                "self",
+                "data"
+              ]
+            },
+            {
+              "name": "_process_data_model",
+              "docstring": "Process DataModel instances.",
+              "decorators": [],
+              "args": [
+                "self",
+                "data"
+              ]
+            },
+            {
+              "name": "_process_generic",
+              "docstring": "Generic processor for unknown data types.",
+              "decorators": [],
+              "args": [
+                "self",
+                "data"
+              ]
+            },
+            {
+              "name": "_generate_cache_key",
+              "docstring": "Generate a cache key for input data.",
+              "decorators": [],
+              "args": [
+                "self",
+                "data"
+              ]
+            },
+            {
+              "name": "get_statistics",
+              "docstring": "Get processing statistics.",
+              "decorators": [
+                "timing_decorator"
+              ],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "clear_cache",
+              "docstring": "Clear the processing cache.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "reset_counters",
+              "docstring": "Reset processing counters.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            }
+          ],
+          "bases": [
+            "BaseProcessor"
+          ],
+          "decorators": []
+        },
+        {
+          "name": "DataProcessor",
+          "docstring": "Specialized processor for structured data operations.\n\nThis processor focuses on transforming structured data formats\nand provides utilities for data validation and conversion.",
+          "methods": [
+            {
+              "name": "__init__",
+              "docstring": null,
+              "decorators": [],
+              "args": [
+                "self",
+                "config"
+              ]
+            },
+            {
+              "name": "process",
+              "docstring": "Process structured data.",
+              "decorators": [],
+              "args": [
+                "self",
+                "data"
+              ]
+            },
+            {
+              "name": "validate_input",
+              "docstring": "Validate structured data input.",
+              "decorators": [],
+              "args": [
+                "self",
+                "data"
+              ]
+            },
+            {
+              "name": "_transform_data",
+              "docstring": "Apply data transformations.",
+              "decorators": [],
+              "args": [
+                "self",
+                "data"
+              ]
+            },
+            {
+              "name": "_detect_format",
+              "docstring": "Detect the format of structured data.",
+              "decorators": [],
+              "args": [
+                "self",
+                "data"
+              ]
+            }
+          ],
+          "bases": [
+            "BaseProcessor"
+          ],
+          "decorators": []
+        }
+      ],
+      "functions": [
+        {
+          "name": "create_processor",
+          "docstring": "Factory function to create different types of processors.\n\nArgs:\n    processor_type: Type of processor to create (\"sample\", \"data\")\n    config: Configuration for the processor\n    \nReturns:\n    Processor instance\n    \nRaises:\n    ValueError: If processor_type is unknown\n    \nExample:\n    >>> processor = create_processor(\"sample\", Config(debug=True))\n    >>> isinstance(processor, SampleProcessor)\n    True",
+          "decorators": [],
+          "args": [
+            "processor_type",
+            "config"
+          ]
+        },
+        {
+          "name": "quick_process",
+          "docstring": "Quickly process data with default configuration.\n\nArgs:\n    data: Data to process\n    processor_type: Type of processor to use\n    **config_kwargs: Configuration options\n    \nReturns:\n    Processing result",
+          "decorators": [],
+          "args": [
+            "data",
+            "processor_type"
+          ]
+        }
+      ],
+      "imports": [
+        "asyncio",
+        "logging",
+        "time",
+        "from typing import Any",
+        "from typing import Dict",
+        "from typing import List",
+        "from typing import Optional",
+        "from typing import Union",
+        "from typing import Callable",
+        "from pathlib import Path",
+        "from dataclasses import dataclass",
+        "from abc import ABC",
+        "from abc import abstractmethod",
+        "from config import Config",
+        "from config import DEFAULT_CONFIG",
+        "from models import DataModel",
+        "from models import ResultModel",
+        "from models import ValidationError",
+        "from utils import validate_input",
+        "from utils import timing_decorator",
+        "from utils import format_output"
+      ],
+      "constants": [],
+      "source_code": "\"\"\"\nCore business logic and main processing classes.\n\nThis module contains the primary functionality of the sample project,\nincluding data processors, business logic, and core algorithms.\n\"\"\"\n\nimport asyncio\nimport logging\nimport time\nfrom typing import Any, Dict, List, Optional, Union, Callable\nfrom pathlib import Path\nfrom dataclasses import dataclass\nfrom abc import ABC, abstractmethod\n\nfrom .config import Config, DEFAULT_CONFIG\nfrom .models import DataModel, ResultModel, ValidationError\nfrom .utils import validate_input, timing_decorator, format_output\n\nlogger = logging.getLogger(__name__)\n\n\nclass ProcessingError(Exception):\n    \"\"\"Raised when data processing fails.\"\"\"\n    \n    def __init__(self, message: str, error_code: int = 500, details: Optional[Dict] = None):\n        super().__init__(message)\n        self.error_code = error_code\n        self.details = details or {}\n        self.timestamp = time.time()\n\n\nclass BaseProcessor(ABC):\n    \"\"\"\n    Abstract base class for all data processors.\n    \n    This class defines the interface that all processors must implement\n    and provides common functionality for error handling and logging.\n    \"\"\"\n    \n    def __init__(self, config: Optional[Config] = None):\n        \"\"\"\n        Initialize the processor with configuration.\n        \n        Args:\n            config: Configuration object, uses defaults if None\n        \"\"\"\n        self.config = config or Config()\n        self.logger = logging.getLogger(f\"{self.__class__.__module__}.{self.__class__.__name__}\")\n        self._setup_processor()\n    \n    def _setup_processor(self) -> None:\n        \"\"\"Set up processor-specific configuration.\"\"\"\n        if self.config.debug:\n            self.logger.setLevel(logging.DEBUG)\n            self.logger.debug(f\"Initialized {self.__class__.__name__} in debug mode\")\n    \n    @abstractmethod\n    def process(self, data: Any) -> Any:\n        \"\"\"\n        Process input data and return results.\n        \n        Args:\n            data: Input data to process\n            \n        Returns:\n            Processed data\n            \n        Raises:\n            ProcessingError: If processing fails\n        \"\"\"\n        pass\n    \n    @abstractmethod\n    def validate_input(self, data: Any) -> bool:\n        \"\"\"\n        Validate input data format and content.\n        \n        Args:\n            data: Data to validate\n            \n        Returns:\n            True if valid, False otherwise\n        \"\"\"\n        pass\n    \n    def get_status(self) -> Dict[str, Any]:\n        \"\"\"Get current processor status.\"\"\"\n        return {\n            \"class\": self.__class__.__name__,\n            \"config\": self.config.to_dict(),\n            \"debug\": self.config.debug,\n            \"timestamp\": time.time()\n        }\n\n\nclass SampleProcessor(BaseProcessor):\n    \"\"\"\n    Main processor class for handling various data processing tasks.\n    \n    This processor can handle different types of input data and apply\n    various transformations based on configuration settings.\n    \n    Attributes:\n        processed_count: Number of items processed\n        error_count: Number of processing errors\n        \n    Example:\n        >>> config = Config(debug=True, max_items=100)\n        >>> processor = SampleProcessor(config)\n        >>> result = processor.process(\"Hello World\")\n        >>> print(result.content)\n        Processed: Hello World\n    \"\"\"\n    \n    def __init__(self, config: Optional[Config] = None):\n        super().__init__(config)\n        self.processed_count = 0\n        self.error_count = 0\n        self._cache = {}\n        self._processors = self._initialize_processors()\n    \n    def _initialize_processors(self) -> Dict[str, Callable]:\n        \"\"\"Initialize specialized processors for different data types.\"\"\"\n        return {\n            'string': self._process_string,\n            'number': self._process_number,\n            'list': self._process_list,\n            'dict': self._process_dict,\n            'model': self._process_data_model,\n        }\n    \n    def process(self, data: Any) -> ResultModel:\n        \"\"\"\n        Process input data and return a ResultModel.\n        \n        Args:\n            data: Input data of any supported type\n            \n        Returns:\n            ResultModel containing processed data and metadata\n            \n        Raises:\n            ProcessingError: If processing fails\n            ValidationError: If input validation fails\n        \"\"\"\n        start_time = time.time()\n        \n        try:\n            # Validate input\n            if not self.validate_input(data):\n                raise ValidationError(f\"Invalid input data: {type(data)}\")\n            \n            # Check cache if enabled\n            if self.config.cache_enabled:\n                cache_key = self._generate_cache_key(data)\n                if cache_key in self._cache:\n                    self.logger.debug(f\"Returning cached result for key: {cache_key}\")\n                    return self._cache[cache_key]\n            \n            # Determine data type and process\n            data_type = self._determine_data_type(data)\n            processor_func = self._processors.get(data_type, self._process_generic)\n            \n            processed_data = processor_func(data)\n            \n            # Create result model\n            result = ResultModel(\n                success=True,\n                content=processed_data,\n                metadata={\n                    'input_type': data_type,\n                    'processor': self.__class__.__name__,\n                    'processing_time': time.time() - start_time,\n                    'config': self.config.to_dict()\n                }\n            )\n            \n            # Cache result if enabled\n            if self.config.cache_enabled:\n                self._cache[cache_key] = result\n            \n            self.processed_count += 1\n            return result\n            \n        except Exception as e:\n            self.error_count += 1\n            self.logger.error(f\"Processing failed: {e}\")\n            raise ProcessingError(f\"Failed to process data: {e}\")\n    \n    def process_data_model(self, model: DataModel) -> ResultModel:\n        \"\"\"\n        Process a DataModel instance with specialized handling.\n        \n        Args:\n            model: DataModel instance to process\n            \n        Returns:\n            ResultModel with processed model data\n        \"\"\"\n        return self.process(model)\n    \n    async def process_async(self, data: Any) -> ResultModel:\n        \"\"\"\n        Asynchronously process data.\n        \n        Args:\n            data: Input data to process\n            \n        Returns:\n            ResultModel containing processed data\n        \"\"\"\n        loop = asyncio.get_event_loop()\n        return await loop.run_in_executor(None, self.process, data)\n    \n    def process_batch(self, data_list: List[Any]) -> List[ResultModel]:\n        \"\"\"\n        Process multiple items in batch.\n        \n        Args:\n            data_list: List of data items to process\n            \n        Returns:\n            List of ResultModel instances\n        \"\"\"\n        results = []\n        max_items = self.config.max_items\n        \n        for i, data in enumerate(data_list[:max_items]):\n            try:\n                result = self.process(data)\n                results.append(result)\n            except Exception as e:\n                self.logger.warning(f\"Failed to process item {i}: {e}\")\n                # Add failed result\n                results.append(ResultModel(\n                    success=False,\n                    error=str(e),\n                    metadata={'item_index': i}\n                ))\n        \n        return results\n    \n    def validate_input(self, data: Any) -> bool:\n        \"\"\"Validate input data.\"\"\"\n        if data is None:\n            return False\n        \n        # Check size limits for collections\n        if isinstance(data, (list, dict, str)):\n            if len(data) > self.config.max_size:\n                return False\n        \n        return True\n    \n    def _determine_data_type(self, data: Any) -> str:\n        \"\"\"Determine the type category of input data.\"\"\"\n        if isinstance(data, str):\n            return 'string'\n        elif isinstance(data, (int, float)):\n            return 'number'\n        elif isinstance(data, list):\n            return 'list'\n        elif isinstance(data, dict):\n            return 'dict'\n        elif isinstance(data, DataModel):\n            return 'model'\n        else:\n            return 'generic'\n    \n    def _process_string(self, data: str) -> str:\n        \"\"\"Process string data.\"\"\"\n        if self.config.uppercase:\n            data = data.upper()\n        return f\"Processed: {data}\"\n    \n    def _process_number(self, data: Union[int, float]) -> Union[int, float]:\n        \"\"\"Process numeric data.\"\"\"\n        if self.config.multiply_factor:\n            data *= self.config.multiply_factor\n        return data\n    \n    def _process_list(self, data: List[Any]) -> List[Any]:\n        \"\"\"Process list data.\"\"\"\n        processed = []\n        for item in data[:self.config.max_items]:\n            if isinstance(item, str):\n                processed.append(self._process_string(item))\n            else:\n                processed.append(item)\n        return processed\n    \n    def _process_dict(self, data: Dict[str, Any]) -> Dict[str, Any]:\n        \"\"\"Process dictionary data.\"\"\"\n        processed = {}\n        for key, value in data.items():\n            if isinstance(value, str):\n                processed[key] = self._process_string(value)\n            else:\n                processed[key] = value\n        return processed\n    \n    def _process_data_model(self, data: DataModel) -> Dict[str, Any]:\n        \"\"\"Process DataModel instances.\"\"\"\n        return {\n            'name': self._process_string(data.name),\n            'value': self._process_number(data.value),\n            'metadata': data.metadata,\n            'processed_timestamp': time.time()\n        }\n    \n    def _process_generic(self, data: Any) -> str:\n        \"\"\"Generic processor for unknown data types.\"\"\"\n        return f\"Generic processing: {str(data)}\"\n    \n    def _generate_cache_key(self, data: Any) -> str:\n        \"\"\"Generate a cache key for input data.\"\"\"\n        return f\"{type(data).__name__}_{hash(str(data))}\"\n    \n    @timing_decorator\n    def get_statistics(self) -> Dict[str, Any]:\n        \"\"\"Get processing statistics.\"\"\"\n        return {\n            'processed_count': self.processed_count,\n            'error_count': self.error_count,\n            'cache_size': len(self._cache),\n            'success_rate': (\n                self.processed_count / (self.processed_count + self.error_count)\n                if (self.processed_count + self.error_count) > 0 else 0.0\n            )\n        }\n    \n    def clear_cache(self) -> None:\n        \"\"\"Clear the processing cache.\"\"\"\n        self._cache.clear()\n        self.logger.info(\"Processing cache cleared\")\n    \n    def reset_counters(self) -> None:\n        \"\"\"Reset processing counters.\"\"\"\n        self.processed_count = 0\n        self.error_count = 0\n        self.logger.info(\"Processing counters reset\")\n\n\nclass DataProcessor(BaseProcessor):\n    \"\"\"\n    Specialized processor for structured data operations.\n    \n    This processor focuses on transforming structured data formats\n    and provides utilities for data validation and conversion.\n    \"\"\"\n    \n    def __init__(self, config: Optional[Config] = None):\n        super().__init__(config)\n        self.supported_formats = ['json', 'yaml', 'xml', 'csv']\n    \n    def process(self, data: Any) -> Dict[str, Any]:\n        \"\"\"Process structured data.\"\"\"\n        if not self.validate_input(data):\n            raise ValidationError(\"Invalid structured data\")\n        \n        return {\n            'original': data,\n            'processed': self._transform_data(data),\n            'format': self._detect_format(data),\n            'timestamp': time.time()\n        }\n    \n    def validate_input(self, data: Any) -> bool:\n        \"\"\"Validate structured data input.\"\"\"\n        return isinstance(data, (dict, list)) and len(str(data)) <= self.config.max_size\n    \n    def _transform_data(self, data: Any) -> Any:\n        \"\"\"Apply data transformations.\"\"\"\n        if isinstance(data, dict):\n            return {k.upper() if isinstance(k, str) else k: v for k, v in data.items()}\n        elif isinstance(data, list):\n            return [item.upper() if isinstance(item, str) else item for item in data]\n        return data\n    \n    def _detect_format(self, data: Any) -> str:\n        \"\"\"Detect the format of structured data.\"\"\"\n        if isinstance(data, dict):\n            return 'json-like'\n        elif isinstance(data, list):\n            return 'array-like'\n        return 'unknown'\n\n\n# Factory function for creating processors\ndef create_processor(processor_type: str = \"sample\", config: Optional[Config] = None) -> BaseProcessor:\n    \"\"\"\n    Factory function to create different types of processors.\n    \n    Args:\n        processor_type: Type of processor to create (\"sample\", \"data\")\n        config: Configuration for the processor\n        \n    Returns:\n        Processor instance\n        \n    Raises:\n        ValueError: If processor_type is unknown\n        \n    Example:\n        >>> processor = create_processor(\"sample\", Config(debug=True))\n        >>> isinstance(processor, SampleProcessor)\n        True\n    \"\"\"\n    processors = {\n        'sample': SampleProcessor,\n        'data': DataProcessor,\n    }\n    \n    if processor_type not in processors:\n        raise ValueError(f\"Unknown processor type: {processor_type}\")\n    \n    return processors[processor_type](config)\n\n\n# Convenience function for quick processing\ndef quick_process(data: Any, processor_type: str = \"sample\", **config_kwargs) -> ResultModel:\n    \"\"\"\n    Quickly process data with default configuration.\n    \n    Args:\n        data: Data to process\n        processor_type: Type of processor to use\n        **config_kwargs: Configuration options\n        \n    Returns:\n        Processing result\n    \"\"\"\n    config = Config(**config_kwargs)\n    processor = create_processor(processor_type, config)\n    return processor.process(data)\n"
+    },
+    {
+      "name": "models",
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "docstring": "Data models and schemas for the Sample Project.\n\nThis module defines the core data structures, validation logic,\nand serialization methods used throughout the application.",
+      "classes": [
+        {
+          "name": "ValidationError",
+          "docstring": "Raised when data validation fails.",
+          "methods": [
+            {
+              "name": "__init__",
+              "docstring": null,
+              "decorators": [],
+              "args": [
+                "self",
+                "message",
+                "field",
+                "value"
+              ]
+            }
+          ],
+          "bases": [
+            "Exception"
+          ],
+          "decorators": []
+        },
+        {
+          "name": "ProcessingStatus",
+          "docstring": "Enumeration of processing status values.",
+          "methods": [],
+          "bases": [
+            "Enum"
+          ],
+          "decorators": []
+        },
+        {
+          "name": "Priority",
+          "docstring": "Task priority levels.",
+          "methods": [],
+          "bases": [
+            "Enum"
+          ],
+          "decorators": []
+        },
+        {
+          "name": "BaseModel",
+          "docstring": "Base class for all data models with common functionality.\n\nProvides validation, serialization, and utility methods\nthat are inherited by all specific model classes.",
+          "methods": [
+            {
+              "name": "validate",
+              "docstring": "Validate the model instance.\n\nReturns:\n    True if validation passes\n    \nRaises:\n    ValidationError: If validation fails",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "to_dict",
+              "docstring": "Convert model to dictionary representation.\n\nReturns:\n    Dictionary representation of the model",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "to_json",
+              "docstring": "Convert model to JSON string.\n\nArgs:\n    indent: JSON indentation level\n    \nReturns:\n    JSON string representation",
+              "decorators": [],
+              "args": [
+                "self",
+                "indent"
+              ]
+            },
+            {
+              "name": "from_dict",
+              "docstring": "Create model instance from dictionary.\n\nArgs:\n    data: Dictionary containing model data\n    \nReturns:\n    New model instance",
+              "decorators": [
+                "classmethod"
+              ],
+              "args": [
+                "cls",
+                "data"
+              ]
+            },
+            {
+              "name": "from_json",
+              "docstring": "Create model instance from JSON string.\n\nArgs:\n    json_str: JSON string containing model data\n    \nReturns:\n    New model instance",
+              "decorators": [
+                "classmethod"
+              ],
+              "args": [
+                "cls",
+                "json_str"
+              ]
+            },
+            {
+              "name": "update",
+              "docstring": "Update model fields with new values.\n\nArgs:\n    **kwargs: Field values to update",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "copy",
+              "docstring": "Create a copy of the model instance.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            }
+          ],
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ]
+        },
+        {
+          "name": "DataModel",
+          "docstring": "Primary data model for representing business entities.\n\nThis model represents the core data structure used throughout\nthe application for processing and storage.\n\nAttributes:\n    name: Entity name (required)\n    value: Numeric value associated with the entity\n    description: Optional description text\n    tags: List of tags for categorization\n    metadata: Additional metadata as key-value pairs\n    is_active: Whether the entity is currently active\n    priority: Priority level for processing\n    \nExample:\n    >>> model = DataModel(\n    ...     name=\"test_entity\",\n    ...     value=42,\n    ...     description=\"A test entity\",\n    ...     tags=[\"test\", \"example\"]\n    ... )\n    >>> model.validate()\n    True\n    >>> model.name\n    'test_entity'",
+          "methods": [
+            {
+              "name": "validate",
+              "docstring": "Validate DataModel instance.\n\nReturns:\n    True if validation passes\n    \nRaises:\n    ValidationError: If validation fails",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "add_tag",
+              "docstring": "Add a tag to the model.",
+              "decorators": [],
+              "args": [
+                "self",
+                "tag"
+              ]
+            },
+            {
+              "name": "remove_tag",
+              "docstring": "Remove a tag from the model.",
+              "decorators": [],
+              "args": [
+                "self",
+                "tag"
+              ]
+            },
+            {
+              "name": "has_tag",
+              "docstring": "Check if model has a specific tag.",
+              "decorators": [],
+              "args": [
+                "self",
+                "tag"
+              ]
+            },
+            {
+              "name": "set_metadata",
+              "docstring": "Set a metadata key-value pair.",
+              "decorators": [],
+              "args": [
+                "self",
+                "key",
+                "value"
+              ]
+            },
+            {
+              "name": "get_metadata",
+              "docstring": "Get a metadata value by key.",
+              "decorators": [],
+              "args": [
+                "self",
+                "key",
+                "default"
+              ]
+            },
+            {
+              "name": "calculate_score",
+              "docstring": "Calculate a composite score based on model attributes.\n\nReturns:\n    Calculated score as float",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            }
+          ],
+          "bases": [
+            "BaseModel"
+          ],
+          "decorators": [
+            "dataclass"
+          ]
+        },
+        {
+          "name": "ResultModel",
+          "docstring": "Model for representing processing results.\n\nThis model encapsulates the results of data processing operations,\nincluding success status, content, and metadata.\n\nAttributes:\n    success: Whether the operation was successful\n    content: The processed content/data\n    error: Error message if operation failed\n    metadata: Additional metadata about the operation\n    status: Processing status\n    execution_time: Time taken for processing (seconds)\n    \nExample:\n    >>> result = ResultModel(\n    ...     success=True,\n    ...     content=\"Processed data\",\n    ...     metadata={\"processor\": \"SampleProcessor\"}\n    ... )\n    >>> result.success\n    True",
+          "methods": [
+            {
+              "name": "validate",
+              "docstring": "Validate ResultModel instance.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "is_success",
+              "docstring": "Check if the result represents a successful operation.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "get_content_summary",
+              "docstring": "Get a summary of the content.\n\nArgs:\n    max_length: Maximum length of summary\n    \nReturns:\n    Content summary string",
+              "decorators": [],
+              "args": [
+                "self",
+                "max_length"
+              ]
+            },
+            {
+              "name": "add_metadata",
+              "docstring": "Add metadata key-value pair.",
+              "decorators": [],
+              "args": [
+                "self",
+                "key",
+                "value"
+              ]
+            }
+          ],
+          "bases": [
+            "BaseModel"
+          ],
+          "decorators": [
+            "dataclass"
+          ]
+        },
+        {
+          "name": "ConfigModel",
+          "docstring": "Model for configuration settings.\n\nThis model represents configuration options that can be\npersisted and loaded for application settings.\n\nAttributes:\n    debug: Debug mode flag\n    max_items: Maximum number of items to process\n    max_size: Maximum size limit for data\n    timeout: Timeout in seconds\n    cache_enabled: Whether caching is enabled\n    log_level: Logging level\n    custom_settings: Additional custom settings\n    \nExample:\n    >>> config = ConfigModel(debug=True, max_items=50)\n    >>> config.debug\n    True\n    >>> config.get_log_level()\n    'INFO'",
+          "methods": [
+            {
+              "name": "validate",
+              "docstring": "Validate ConfigModel instance.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "get_log_level",
+              "docstring": "Get the log level in uppercase.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "is_debug_mode",
+              "docstring": "Check if debug mode is enabled.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "set_custom_setting",
+              "docstring": "Set a custom configuration setting.",
+              "decorators": [],
+              "args": [
+                "self",
+                "key",
+                "value"
+              ]
+            },
+            {
+              "name": "get_custom_setting",
+              "docstring": "Get a custom configuration setting.",
+              "decorators": [],
+              "args": [
+                "self",
+                "key",
+                "default"
+              ]
+            }
+          ],
+          "bases": [
+            "BaseModel"
+          ],
+          "decorators": [
+            "dataclass"
+          ]
+        },
+        {
+          "name": "TaskModel",
+          "docstring": "Model for representing processing tasks.\n\nThis model represents individual tasks that can be queued,\nprocessed, and tracked through their lifecycle.\n\nAttributes:\n    id: Unique task identifier\n    name: Task name/description\n    data: Task input data\n    status: Current task status\n    priority: Task priority level\n    result: Task processing result\n    error_count: Number of processing errors\n    max_retries: Maximum retry attempts\n    \nExample:\n    >>> task = TaskModel(\n    ...     id=\"task_123\",\n    ...     name=\"Process data\",\n    ...     data={\"key\": \"value\"}\n    ... )\n    >>> task.can_retry()\n    True",
+          "methods": [
+            {
+              "name": "validate",
+              "docstring": "Validate TaskModel instance.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "can_retry",
+              "docstring": "Check if the task can be retried.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "mark_in_progress",
+              "docstring": "Mark task as in progress.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "mark_completed",
+              "docstring": "Mark task as completed with result.",
+              "decorators": [],
+              "args": [
+                "self",
+                "result"
+              ]
+            },
+            {
+              "name": "mark_failed",
+              "docstring": "Mark task as failed with error.",
+              "decorators": [],
+              "args": [
+                "self",
+                "error_message"
+              ]
+            },
+            {
+              "name": "get_priority_score",
+              "docstring": "Get numeric priority score for sorting.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            }
+          ],
+          "bases": [
+            "BaseModel"
+          ],
+          "decorators": [
+            "dataclass"
+          ]
+        }
+      ],
+      "functions": [
+        {
+          "name": "create_model",
+          "docstring": "Factory function to create model instances by type.\n\nArgs:\n    model_type: Type of model to create\n    **kwargs: Model initialization parameters\n    \nReturns:\n    New model instance\n    \nRaises:\n    ValueError: If model_type is unknown\n    \nExample:\n    >>> model = create_model('data', name='test', value=42)\n    >>> isinstance(model, DataModel)\n    True",
+          "decorators": [],
+          "args": [
+            "model_type"
+          ]
+        },
+        {
+          "name": "validate_models",
+          "docstring": "Validate multiple models and return any validation errors.\n\nArgs:\n    models: List of models to validate\n    \nReturns:\n    List of validation errors (empty if all valid)",
+          "decorators": [],
+          "args": [
+            "models"
+          ]
+        },
+        {
+          "name": "serialize_models",
+          "docstring": "Serialize a list of models to dictionaries.\n\nArgs:\n    models: List of models to serialize\n    \nReturns:\n    List of model dictionaries",
+          "decorators": [],
+          "args": [
+            "models"
+          ]
+        },
+        {
+          "name": "filter_models_by_status",
+          "docstring": "Filter task models by status.",
+          "decorators": [],
+          "args": [
+            "models",
+            "status"
+          ]
+        },
+        {
+          "name": "sort_models_by_priority",
+          "docstring": "Sort task models by priority.",
+          "decorators": [],
+          "args": [
+            "models",
+            "descending"
+          ]
+        },
+        {
+          "name": "find_model_by_id",
+          "docstring": "Find a task model by ID.",
+          "decorators": [],
+          "args": [
+            "models",
+            "task_id"
+          ]
+        }
+      ],
+      "imports": [
+        "json",
+        "time",
+        "from dataclasses import dataclass",
+        "from dataclasses import field",
+        "from dataclasses import asdict",
+        "from typing import Any",
+        "from typing import Dict",
+        "from typing import List",
+        "from typing import Optional",
+        "from typing import Union",
+        "from typing import Type",
+        "from enum import Enum",
+        "from enum import auto",
+        "from datetime import datetime",
+        "logging"
+      ],
+      "constants": []
+    },
+    {
+      "name": "utils",
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "docstring": "Utility functions and decorators for the Sample Project.\n\nThis module provides common utilities, helper functions, decorators,\nand validation tools used throughout the project.",
+      "classes": [
+        {
+          "name": "PerformanceMonitor",
+          "docstring": "Context manager for monitoring performance metrics.\n\nExample:\n    >>> with PerformanceMonitor(\"test_operation\") as monitor:\n    ...     time.sleep(0.1)  # Simulate work\n    ...     monitor.add_metric(\"items_processed\", 42)\n    >>> monitor.get_results()[\"duration\"] > 0\n    True",
+          "methods": [
+            {
+              "name": "__init__",
+              "docstring": null,
+              "decorators": [],
+              "args": [
+                "self",
+                "operation_name"
+              ]
+            },
+            {
+              "name": "__enter__",
+              "docstring": null,
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "__exit__",
+              "docstring": null,
+              "decorators": [],
+              "args": [
+                "self",
+                "exc_type",
+                "exc_val",
+                "exc_tb"
+              ]
+            },
+            {
+              "name": "add_metric",
+              "docstring": "Add a custom metric.",
+              "decorators": [],
+              "args": [
+                "self",
+                "name",
+                "value"
+              ]
+            },
+            {
+              "name": "get_results",
+              "docstring": "Get all performance metrics.",
+              "decorators": [],
+              "args": [
+                "self"
+              ]
+            }
+          ],
+          "bases": [],
+          "decorators": []
+        }
+      ],
+      "functions": [
+        {
+          "name": "timing_decorator",
+          "docstring": "Decorator to measure and log function execution time.\n\nArgs:\n    func: Function to be timed\n    \nReturns:\n    Wrapped function that logs execution time\n    \nExample:\n    >>> @timing_decorator\n    ... def slow_function():\n    ...     time.sleep(0.1)\n    ...     return \"done\"\n    >>> result = slow_function()  # Logs execution time\n    >>> result\n    'done'",
+          "decorators": [],
+          "args": [
+            "func"
+          ]
+        },
+        {
+          "name": "retry_decorator",
+          "docstring": "Decorator for retrying function calls with exponential backoff.\n\nArgs:\n    max_attempts: Maximum number of retry attempts\n    delay: Initial delay between retries in seconds\n    backoff: Multiplier for delay after each attempt\n    \nReturns:\n    Decorator function\n    \nExample:\n    >>> @retry_decorator(max_attempts=3, delay=0.1)\n    ... def flaky_function():\n    ...     import random\n    ...     if random.random() < 0.7:\n    ...         raise ValueError(\"Random failure\")\n    ...     return \"success\"\n    >>> result = flaky_function()  # Will retry up to 3 times",
+          "decorators": [],
+          "args": [
+            "max_attempts",
+            "delay",
+            "backoff"
+          ]
+        },
+        {
+          "name": "cache_decorator",
+          "docstring": "Simple caching decorator with TTL (Time To Live).\n\nArgs:\n    ttl_seconds: Cache TTL in seconds\n    \nReturns:\n    Decorator function\n    \nExample:\n    >>> @cache_decorator(ttl_seconds=60)\n    ... def expensive_function(x):\n    ...     time.sleep(1)  # Simulate expensive operation\n    ...     return x * 2\n    >>> result1 = expensive_function(5)  # Takes ~1 second\n    >>> result2 = expensive_function(5)  # Returns immediately from cache",
+          "decorators": [],
+          "args": [
+            "ttl_seconds"
+          ]
+        },
+        {
+          "name": "validate_input",
+          "docstring": "Validate input data using a list of validator functions.\n\nArgs:\n    data: Data to validate\n    validators: List of validator functions\n    \nReturns:\n    True if all validations pass, False otherwise\n    \nExample:\n    >>> def is_string(x): return isinstance(x, str)\n    >>> def min_length(x): return len(x) >= 3\n    >>> validate_input(\"hello\", [is_string, min_length])\n    True\n    >>> validate_input(\"hi\", [is_string, min_length])\n    False",
+          "decorators": [],
+          "args": [
+            "data",
+            "validators"
+          ]
+        },
+        {
+          "name": "validate_email",
+          "docstring": "Validate email address format.\n\nArgs:\n    email: Email address string\n    \nReturns:\n    True if valid email format\n    \nExample:\n    >>> validate_email(\"user@example.com\")\n    True\n    >>> validate_email(\"invalid-email\")\n    False",
+          "decorators": [],
+          "args": [
+            "email"
+          ]
+        },
+        {
+          "name": "validate_url",
+          "docstring": "Validate URL format.\n\nArgs:\n    url: URL string\n    \nReturns:\n    True if valid URL format\n    \nExample:\n    >>> validate_url(\"https://example.com\")\n    True\n    >>> validate_url(\"not-a-url\")\n    False",
+          "decorators": [],
+          "args": [
+            "url"
+          ]
+        },
+        {
+          "name": "validate_phone",
+          "docstring": "Validate US phone number format.\n\nArgs:\n    phone: Phone number string\n    \nReturns:\n    True if valid phone format\n    \nExample:\n    >>> validate_phone(\"(555) 123-4567\")\n    True\n    >>> validate_phone(\"555-1234\")\n    False",
+          "decorators": [],
+          "args": [
+            "phone"
+          ]
+        },
+        {
+          "name": "format_output",
+          "docstring": "Format data for output in various formats.\n\nArgs:\n    data: Data to format\n    format_type: Output format (\"json\", \"yaml\", \"pretty\", \"csv\")\n    indent: Indentation level for formatted output\n    \nReturns:\n    Formatted string\n    \nExample:\n    >>> data = {\"name\": \"test\", \"value\": 42}\n    >>> formatted = format_output(data, \"json\")\n    >>> \"name\" in formatted and \"value\" in formatted\n    True",
+          "decorators": [],
+          "args": [
+            "data",
+            "format_type",
+            "indent"
+          ]
+        },
+        {
+          "name": "_pretty_format",
+          "docstring": "Format data in a pretty, human-readable format.",
+          "decorators": [],
+          "args": [
+            "data",
+            "indent"
+          ]
+        },
+        {
+          "name": "_format_as_csv",
+          "docstring": "Format list data as CSV.",
+          "decorators": [],
+          "args": [
+            "data"
+          ]
+        },
+        {
+          "name": "sanitize_string",
+          "docstring": "Sanitize string input by removing dangerous characters and limiting length.\n\nArgs:\n    text: Input text to sanitize\n    max_length: Maximum allowed length\n    remove_html: Whether to remove HTML tags\n    \nReturns:\n    Sanitized string\n    \nExample:\n    >>> sanitize_string(\"<script>alert('xss')</script>Hello\", remove_html=True)\n    'Hello'",
+          "decorators": [],
+          "args": [
+            "text",
+            "max_length",
+            "remove_html"
+          ]
+        },
+        {
+          "name": "deep_merge_dicts",
+          "docstring": "Deep merge two dictionaries.\n\nArgs:\n    dict1: First dictionary\n    dict2: Second dictionary (takes precedence)\n    \nReturns:\n    Merged dictionary\n    \nExample:\n    >>> d1 = {\"a\": {\"x\": 1}, \"b\": 2}\n    >>> d2 = {\"a\": {\"y\": 2}, \"c\": 3}\n    >>> result = deep_merge_dicts(d1, d2)\n    >>> result[\"a\"][\"x\"] == 1 and result[\"a\"][\"y\"] == 2\n    True",
+          "decorators": [],
+          "args": [
+            "dict1",
+            "dict2"
+          ]
+        },
+        {
+          "name": "flatten_dict",
+          "docstring": "Flatten a nested dictionary.\n\nArgs:\n    d: Dictionary to flatten\n    parent_key: Parent key for recursion\n    sep: Separator for nested keys\n    \nReturns:\n    Flattened dictionary\n    \nExample:\n    >>> nested = {\"a\": {\"b\": {\"c\": 1}}, \"d\": 2}\n    >>> flat = flatten_dict(nested)\n    >>> flat[\"a.b.c\"] == 1\n    True",
+          "decorators": [],
+          "args": [
+            "d",
+            "parent_key",
+            "sep"
+          ]
+        },
+        {
+          "name": "safe_file_operation",
+          "docstring": "Safely perform file operations with proper error handling.\n\nArgs:\n    filepath: Path to the file\n    operation: Operation type (\"read\", \"write\", \"append\")\n    data: Data to write (for write operations)\n    \nReturns:\n    File content for read operations, None for write operations\n    \nExample:\n    >>> safe_file_operation(\"test.txt\", \"write\", \"Hello World\")\n    >>> content = safe_file_operation(\"test.txt\", \"read\")\n    >>> content.strip()\n    'Hello World'",
+          "decorators": [
+            "timing_decorator"
+          ],
+          "args": [
+            "filepath",
+            "operation",
+            "data"
+          ]
+        },
+        {
+          "name": "calculate_file_hash",
+          "docstring": "Calculate hash of a file.\n\nArgs:\n    filepath: Path to the file\n    algorithm: Hash algorithm (\"md5\", \"sha1\", \"sha256\")\n    \nReturns:\n    Hex digest of the file hash\n    \nExample:\n    >>> hash_value = calculate_file_hash(\"test.txt\")\n    >>> len(hash_value) == 64  # SHA256 produces 64 character hex string\n    True",
+          "decorators": [],
+          "args": [
+            "filepath",
+            "algorithm"
+          ]
+        },
+        {
+          "name": "create_validators",
+          "docstring": "Create a list of common validators.\n\nArgs:\n    min_length: Minimum length requirement\n    max_length: Maximum length requirement  \n    pattern: Regex pattern to match\n    allowed_types: List of allowed types\n    \nReturns:\n    List of validator functions\n    \nExample:\n    >>> validators = create_validators(min_length=3, max_length=10, allowed_types=[str])\n    >>> validate_input(\"hello\", validators)\n    True\n    >>> validate_input(\"hi\", validators)\n    False",
+          "decorators": [],
+          "args": [
+            "min_length",
+            "max_length",
+            "pattern",
+            "allowed_types"
+          ]
+        }
+      ],
+      "imports": [
+        "functools",
+        "json",
+        "re",
+        "time",
+        "from typing import Any",
+        "from typing import Callable",
+        "from typing import Dict",
+        "from typing import List",
+        "from typing import Optional",
+        "from typing import Union",
+        "from pathlib import Path",
+        "logging",
+        "from datetime import datetime",
+        "from datetime import timedelta"
+      ],
+      "constants": []
+    },
+    {
+      "name": "__init__",
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\__init__.py",
+      "docstring": "Sample Project - A comprehensive Python project for testing README generation.\n\nThis package demonstrates various Python patterns and structures including:\n- Configuration management\n- CLI interfaces  \n- Data models\n- Utility functions\n- Core business logic\n- Entry points and scripts\n\nFeatures:\n- Configurable data processing pipeline\n- Command-line interface with multiple commands\n- Extensible plugin architecture\n- Comprehensive error handling\n- Type hints and documentation\n\nUsage:\n    >>> from sample_project import SampleProcessor\n    >>> processor = SampleProcessor()\n    >>> result = processor.process(\"Hello World\")\n    >>> print(result)\n    Processed: Hello World\n\nExample:\n    Basic usage of the package:\n\n    ```\n    from sample_project import SampleProcessor, Config\n    from sample_project.models import DataModel\n\n    # Initialize with custom config\n    config = Config(debug=True, max_items=100)\n    processor = SampleProcessor(config)\n\n    # Process some data\n    data = DataModel(name=\"test\", value=42)\n    result = processor.process_data_model(data)\n    ```",
+      "classes": [],
+      "functions": [
+        {
+          "name": "get_version",
+          "docstring": "Get the current package version.",
+          "decorators": [],
+          "args": []
+        },
+        {
+          "name": "get_package_info",
+          "docstring": "Get comprehensive package information.",
+          "decorators": [],
+          "args": []
+        },
+        {
+          "name": "quick_setup",
+          "docstring": "Quickly set up a SampleProcessor with common defaults.\n\nArgs:\n    debug: Enable debug mode\n    **kwargs: Additional configuration options\n    \nReturns:\n    Configured SampleProcessor instance\n    \nExample:\n    >>> processor = quick_setup(debug=True, max_items=50)\n    >>> isinstance(processor, SampleProcessor)\n    True",
+          "decorators": [],
+          "args": [
+            "debug"
+          ]
+        },
+        {
+          "name": "setup_logging",
+          "docstring": "Set up package-level logging configuration.",
+          "decorators": [],
+          "args": [
+            "level"
+          ]
+        }
+      ],
+      "imports": [
+        "from main import SampleProcessor",
+        "from main import DataProcessor",
+        "from main import ProcessingError",
+        "from config import Config",
+        "from config import load_config",
+        "from config import save_config",
+        "from config import DEFAULT_CONFIG",
+        "from models import DataModel",
+        "from models import ResultModel",
+        "from models import ValidationError",
+        "from utils import format_output",
+        "from utils import validate_input",
+        "from utils import timing_decorator",
+        "logging"
+      ],
+      "constants": []
+    }
+  ],
+  "examples": [
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "function process",
+      "type": "example_section",
+      "code": "sample-project process \"Hello World\" --debug\n    sample-project process '{\"name\": \"test\", \"value\": 42}' --processor-type data\n    sample-project process \"batch data\" --save results.json",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "function batch",
+      "type": "example_section",
+      "code": "sample-project batch data.jsonl --output results.json\n    sample-project batch data.json --max-items 50 --no-show-progress",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "function config",
+      "type": "example_section",
+      "code": "sample-project config show --file my_config.json\n    sample-project config create --debug --max-items 200\n    sample-project config validate --file production.json",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "function stats",
+      "type": "example_section",
+      "code": "sample-project stats --processor-type sample\n    sample-project stats --reset",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "main guard",
+      "type": "main_example",
+      "code": "if __name__ == \"__main__\":\n    main()",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "comment",
+      "type": "comment_example",
+      "code": "Click-based alternative commands (for demonstration)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "console = Console()",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "config = Config(debug=True)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "processor = create_processor(\"sample\", config)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "help_table = Table(title=\"Interactive Mode Commands\")",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "table = Table(title=\"Processing Result\")",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "config = Config(debug=debug)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "processor = SampleProcessor(config)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "processor = create_processor(processor_type, config)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "processor = create_processor(processor_type, config)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "successful = sum(1 for r in results if getattr(r, 'success', True))",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "processor = create_processor(processor_type, config)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "config = load_config(config_file)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "config = Config()",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "table = Table(title=f\"{processor_type.title()} Processor Statistics\")",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "config = load_config(config_file)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "config = Config()",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "config = Config(",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\cli.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "config = load_config(config_file)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\config.py",
+      "context": "class Config",
+      "type": "doctest",
+      "code": ">>> config = Config(debug=True, max_items=50)\n>>> config.debug",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\config.py",
+      "context": "class Config",
+      "type": "doctest",
+      "code": ">>> config.is_debug_mode()",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\config.py",
+      "context": "class Config",
+      "type": "code_block",
+      "code": ">>> config = Config(debug=True, max_items=50)\n>>> config.debug\nTrue\n>>> config.is_debug_mode()\nTrue",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\config.py",
+      "context": "class Config",
+      "type": "example_section",
+      "code": ">>> config = Config(debug=True, max_items=50)\n    >>> config.debug\n    True\n    >>> config.is_debug_mode()\n    True",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\config.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "config_dict = asdict(self)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\config.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "dir_path = Path(getattr(self, dir_attr))",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\config.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "converted_value = converter(env_value)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\main.py",
+      "context": "class SampleProcessor",
+      "type": "doctest",
+      "code": ">>> config = Config(debug=True, max_items=100)\n>>> processor = SampleProcessor(config)\n>>> result = processor.process(\"Hello World\")\n>>> print(result.content)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\main.py",
+      "context": "class SampleProcessor",
+      "type": "code_block",
+      "code": ">>> config = Config(debug=True, max_items=100)\n>>> processor = SampleProcessor(config)\n>>> result = processor.process(\"Hello World\")\n>>> print(result.content)\nProcessed: Hello World",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\main.py",
+      "context": "class SampleProcessor",
+      "type": "example_section",
+      "code": ">>> config = Config(debug=True, max_items=100)\n    >>> processor = SampleProcessor(config)\n    >>> result = processor.process(\"Hello World\")\n    >>> print(result.content)\n    Processed: Hello World",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\main.py",
+      "context": "function create_processor",
+      "type": "doctest",
+      "code": ">>> processor = create_processor(\"sample\", Config(debug=True))\n>>> isinstance(processor, SampleProcessor)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\main.py",
+      "context": "function create_processor",
+      "type": "code_block",
+      "code": ">>> processor = create_processor(\"sample\", Config(debug=True))\n>>> isinstance(processor, SampleProcessor)\nTrue",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\main.py",
+      "context": "function create_processor",
+      "type": "example_section",
+      "code": ">>> processor = create_processor(\"sample\", Config(debug=True))\n    >>> isinstance(processor, SampleProcessor)\n    True",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\main.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "config = Config(**config_kwargs)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\main.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "processor = create_processor(processor_type, config)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\main.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "processed_data = processor_func(data)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\main.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "result = ResultModel(",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "class DataModel",
+      "type": "doctest",
+      "code": ">>> model = DataModel(\n...     name=\"test_entity\",\n...     value=42,\n...     description=\"A test entity\",\n...     tags=[\"test\", \"example\"]\n... )\n>>> model.validate()",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "class DataModel",
+      "type": "doctest",
+      "code": ">>> model.name",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "class DataModel",
+      "type": "code_block",
+      "code": ">>> model = DataModel(\n...     name=\"test_entity\",\n...     value=42,\n...     description=\"A test entity\",\n...     tags=[\"test\", \"example\"]\n... )\n>>> model.validate()\nTrue\n>>> model.name\n'test_entity'",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "class DataModel",
+      "type": "example_section",
+      "code": ">>> model = DataModel(\n    ...     name=\"test_entity\",\n    ...     value=42,\n    ...     description=\"A test entity\",\n    ...     tags=[\"test\", \"example\"]\n    ... )\n    >>> model.validate()\n    True\n    >>> model.name\n    'test_entity'",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "class ResultModel",
+      "type": "doctest",
+      "code": ">>> result = ResultModel(\n...     success=True,\n...     content=\"Processed data\",\n...     metadata={\"processor\": \"SampleProcessor\"}\n... )\n>>> result.success",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "class ResultModel",
+      "type": "code_block",
+      "code": ">>> result = ResultModel(\n...     success=True,\n...     content=\"Processed data\",\n...     metadata={\"processor\": \"SampleProcessor\"}\n... )\n>>> result.success\nTrue",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "class ResultModel",
+      "type": "example_section",
+      "code": ">>> result = ResultModel(\n    ...     success=True,\n    ...     content=\"Processed data\",\n    ...     metadata={\"processor\": \"SampleProcessor\"}\n    ... )\n    >>> result.success\n    True",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "class ConfigModel",
+      "type": "doctest",
+      "code": ">>> config = ConfigModel(debug=True, max_items=50)\n>>> config.debug",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "class ConfigModel",
+      "type": "doctest",
+      "code": ">>> config.get_log_level()",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "class ConfigModel",
+      "type": "code_block",
+      "code": ">>> config = ConfigModel(debug=True, max_items=50)\n>>> config.debug\nTrue\n>>> config.get_log_level()\n'INFO'",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "class ConfigModel",
+      "type": "example_section",
+      "code": ">>> config = ConfigModel(debug=True, max_items=50)\n    >>> config.debug\n    True\n    >>> config.get_log_level()\n    'INFO'",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "class TaskModel",
+      "type": "doctest",
+      "code": ">>> task = TaskModel(\n...     id=\"task_123\",\n...     name=\"Process data\",\n...     data={\"key\": \"value\"}\n... )\n>>> task.can_retry()",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "class TaskModel",
+      "type": "code_block",
+      "code": ">>> task = TaskModel(\n...     id=\"task_123\",\n...     name=\"Process data\",\n...     data={\"key\": \"value\"}\n... )\n>>> task.can_retry()\nTrue",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "class TaskModel",
+      "type": "example_section",
+      "code": ">>> task = TaskModel(\n    ...     id=\"task_123\",\n    ...     name=\"Process data\",\n    ...     data={\"key\": \"value\"}\n    ... )\n    >>> task.can_retry()\n    True",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "function create_model",
+      "type": "doctest",
+      "code": ">>> model = create_model('data', name='test', value=42)\n>>> isinstance(model, DataModel)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "function create_model",
+      "type": "code_block",
+      "code": ">>> model = create_model('data', name='test', value=42)\n>>> isinstance(model, DataModel)\nTrue",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "function create_model",
+      "type": "example_section",
+      "code": ">>> model = create_model('data', name='test', value=42)\n    >>> isinstance(model, DataModel)\n    True",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "PENDING = auto()",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "IN_PROGRESS = auto()",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "COMPLETED = auto()",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "FAILED = auto()",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "CANCELLED = auto()",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "base_score = float(self.value)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\models.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "content_str = str(self.content)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function timing_decorator",
+      "type": "doctest",
+      "code": ">>> @timing_decorator\n... def slow_function():\n...     time.sleep(0.1)\n...     return \"done\"\n>>> result = slow_function()  # Logs execution time\n>>> result",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function timing_decorator",
+      "type": "code_block",
+      "code": ">>> @timing_decorator\n... def slow_function():\n...     time.sleep(0.1)\n...     return \"done\"\n>>> result = slow_function()  # Logs execution time\n>>> result\n'done'",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function timing_decorator",
+      "type": "example_section",
+      "code": ">>> @timing_decorator\n    ... def slow_function():\n    ...     time.sleep(0.1)\n    ...     return \"done\"\n    >>> result = slow_function()  # Logs execution time\n    >>> result\n    'done'",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function retry_decorator",
+      "type": "doctest",
+      "code": ">>> @retry_decorator(max_attempts=3, delay=0.1)\n... def flaky_function():\n...     import random\n...     if random.random() < 0.7:\n...         raise ValueError(\"Random failure\")\n...     return \"success\"\n>>> result = flaky_function()  # Will retry up to 3 times",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function retry_decorator",
+      "type": "code_block",
+      "code": ">>> @retry_decorator(max_attempts=3, delay=0.1)\n... def flaky_function():\n...     import random\n...     if random.random() < 0.7:\n...         raise ValueError(\"Random failure\")\n...     return \"success\"\n>>> result = flaky_function()  # Will retry up to 3 times",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function retry_decorator",
+      "type": "example_section",
+      "code": ">>> @retry_decorator(max_attempts=3, delay=0.1)\n    ... def flaky_function():\n    ...     import random\n    ...     if random.random() < 0.7:\n    ...         raise ValueError(\"Random failure\")\n    ...     return \"success\"\n    >>> result = flaky_function()  # Will retry up to 3 times",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function cache_decorator",
+      "type": "doctest",
+      "code": ">>> @cache_decorator(ttl_seconds=60)\n... def expensive_function(x):\n...     time.sleep(1)  # Simulate expensive operation\n...     return x * 2\n>>> result1 = expensive_function(5)  # Takes ~1 second\n>>> result2 = expensive_function(5)  # Returns immediately from cache",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function cache_decorator",
+      "type": "code_block",
+      "code": ">>> @cache_decorator(ttl_seconds=60)\n... def expensive_function(x):\n...     time.sleep(1)  # Simulate expensive operation\n...     return x * 2\n>>> result1 = expensive_function(5)  # Takes ~1 second\n>>> result2 = expensive_function(5)  # Returns immediately from cache",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function cache_decorator",
+      "type": "example_section",
+      "code": ">>> @cache_decorator(ttl_seconds=60)\n    ... def expensive_function(x):\n    ...     time.sleep(1)  # Simulate expensive operation\n    ...     return x * 2\n    >>> result1 = expensive_function(5)  # Takes ~1 second\n    >>> result2 = expensive_function(5)  # Returns immediately from cache",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_input",
+      "type": "doctest",
+      "code": ">>> def is_string(x): return isinstance(x, str)\n>>> def min_length(x): return len(x) >= 3\n>>> validate_input(\"hello\", [is_string, min_length])",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_input",
+      "type": "doctest",
+      "code": ">>> validate_input(\"hi\", [is_string, min_length])",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_input",
+      "type": "code_block",
+      "code": ">>> def is_string(x): return isinstance(x, str)\n>>> def min_length(x): return len(x) >= 3\n>>> validate_input(\"hello\", [is_string, min_length])\nTrue\n>>> validate_input(\"hi\", [is_string, min_length])\nFalse",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_input",
+      "type": "example_section",
+      "code": ">>> def is_string(x): return isinstance(x, str)\n    >>> def min_length(x): return len(x) >= 3\n    >>> validate_input(\"hello\", [is_string, min_length])\n    True\n    >>> validate_input(\"hi\", [is_string, min_length])\n    False",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_email",
+      "type": "doctest",
+      "code": ">>> validate_email(\"user@example.com\")",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_email",
+      "type": "doctest",
+      "code": ">>> validate_email(\"invalid-email\")",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_email",
+      "type": "code_block",
+      "code": ">>> validate_email(\"user@example.com\")\nTrue\n>>> validate_email(\"invalid-email\")\nFalse",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_email",
+      "type": "example_section",
+      "code": ">>> validate_email(\"user@example.com\")\n    True\n    >>> validate_email(\"invalid-email\")\n    False",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_url",
+      "type": "doctest",
+      "code": ">>> validate_url(\"https://example.com\")",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_url",
+      "type": "doctest",
+      "code": ">>> validate_url(\"not-a-url\")",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_url",
+      "type": "code_block",
+      "code": ">>> validate_url(\"https://example.com\")\nTrue\n>>> validate_url(\"not-a-url\")\nFalse",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_url",
+      "type": "example_section",
+      "code": ">>> validate_url(\"https://example.com\")\n    True\n    >>> validate_url(\"not-a-url\")\n    False",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_phone",
+      "type": "doctest",
+      "code": ">>> validate_phone(\"(555) 123-4567\")",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_phone",
+      "type": "doctest",
+      "code": ">>> validate_phone(\"555-1234\")",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_phone",
+      "type": "code_block",
+      "code": ">>> validate_phone(\"(555) 123-4567\")\nTrue\n>>> validate_phone(\"555-1234\")\nFalse",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function validate_phone",
+      "type": "example_section",
+      "code": ">>> validate_phone(\"(555) 123-4567\")\n    True\n    >>> validate_phone(\"555-1234\")\n    False",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function format_output",
+      "type": "doctest",
+      "code": ">>> data = {\"name\": \"test\", \"value\": 42}\n>>> formatted = format_output(data, \"json\")\n>>> \"name\" in formatted and \"value\" in formatted",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function format_output",
+      "type": "code_block",
+      "code": ">>> data = {\"name\": \"test\", \"value\": 42}\n>>> formatted = format_output(data, \"json\")\n>>> \"name\" in formatted and \"value\" in formatted\nTrue",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function format_output",
+      "type": "example_section",
+      "code": ">>> data = {\"name\": \"test\", \"value\": 42}\n    >>> formatted = format_output(data, \"json\")\n    >>> \"name\" in formatted and \"value\" in formatted\n    True",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function sanitize_string",
+      "type": "doctest",
+      "code": ">>> sanitize_string(\"<script>alert('xss')</script>Hello\", remove_html=True)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function sanitize_string",
+      "type": "code_block",
+      "code": ">>> sanitize_string(\"<script>alert('xss')</script>Hello\", remove_html=True)\n'Hello'",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function sanitize_string",
+      "type": "example_section",
+      "code": ">>> sanitize_string(\"<script>alert('xss')</script>Hello\", remove_html=True)\n    'Hello'",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function deep_merge_dicts",
+      "type": "doctest",
+      "code": ">>> d1 = {\"a\": {\"x\": 1}, \"b\": 2}\n>>> d2 = {\"a\": {\"y\": 2}, \"c\": 3}\n>>> result = deep_merge_dicts(d1, d2)\n>>> result[\"a\"][\"x\"] == 1 and result[\"a\"][\"y\"] == 2",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function deep_merge_dicts",
+      "type": "code_block",
+      "code": ">>> d1 = {\"a\": {\"x\": 1}, \"b\": 2}\n>>> d2 = {\"a\": {\"y\": 2}, \"c\": 3}\n>>> result = deep_merge_dicts(d1, d2)\n>>> result[\"a\"][\"x\"] == 1 and result[\"a\"][\"y\"] == 2\nTrue",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function deep_merge_dicts",
+      "type": "example_section",
+      "code": ">>> d1 = {\"a\": {\"x\": 1}, \"b\": 2}\n    >>> d2 = {\"a\": {\"y\": 2}, \"c\": 3}\n    >>> result = deep_merge_dicts(d1, d2)\n    >>> result[\"a\"][\"x\"] == 1 and result[\"a\"][\"y\"] == 2\n    True",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function flatten_dict",
+      "type": "doctest",
+      "code": ">>> nested = {\"a\": {\"b\": {\"c\": 1}}, \"d\": 2}\n>>> flat = flatten_dict(nested)\n>>> flat[\"a.b.c\"] == 1",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function flatten_dict",
+      "type": "code_block",
+      "code": ">>> nested = {\"a\": {\"b\": {\"c\": 1}}, \"d\": 2}\n>>> flat = flatten_dict(nested)\n>>> flat[\"a.b.c\"] == 1\nTrue",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function flatten_dict",
+      "type": "example_section",
+      "code": ">>> nested = {\"a\": {\"b\": {\"c\": 1}}, \"d\": 2}\n    >>> flat = flatten_dict(nested)\n    >>> flat[\"a.b.c\"] == 1\n    True",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function safe_file_operation",
+      "type": "doctest",
+      "code": ">>> safe_file_operation(\"test.txt\", \"write\", \"Hello World\")\n>>> content = safe_file_operation(\"test.txt\", \"read\")\n>>> content.strip()",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function safe_file_operation",
+      "type": "code_block",
+      "code": ">>> safe_file_operation(\"test.txt\", \"write\", \"Hello World\")\n>>> content = safe_file_operation(\"test.txt\", \"read\")\n>>> content.strip()\n'Hello World'",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function safe_file_operation",
+      "type": "example_section",
+      "code": ">>> safe_file_operation(\"test.txt\", \"write\", \"Hello World\")\n    >>> content = safe_file_operation(\"test.txt\", \"read\")\n    >>> content.strip()\n    'Hello World'",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function calculate_file_hash",
+      "type": "doctest",
+      "code": ">>> hash_value = calculate_file_hash(\"test.txt\")\n>>> len(hash_value) == 64  # SHA256 produces 64 character hex string",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function calculate_file_hash",
+      "type": "code_block",
+      "code": ">>> hash_value = calculate_file_hash(\"test.txt\")\n>>> len(hash_value) == 64  # SHA256 produces 64 character hex string\nTrue",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function calculate_file_hash",
+      "type": "example_section",
+      "code": ">>> hash_value = calculate_file_hash(\"test.txt\")\n    >>> len(hash_value) == 64  # SHA256 produces 64 character hex string\n    True",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "class PerformanceMonitor",
+      "type": "doctest",
+      "code": ">>> with PerformanceMonitor(\"test_operation\") as monitor:\n...     time.sleep(0.1)  # Simulate work\n...     monitor.add_metric(\"items_processed\", 42)\n>>> monitor.get_results()[\"duration\"] > 0",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "class PerformanceMonitor",
+      "type": "code_block",
+      "code": ">>> with PerformanceMonitor(\"test_operation\") as monitor:\n...     time.sleep(0.1)  # Simulate work\n...     monitor.add_metric(\"items_processed\", 42)\n>>> monitor.get_results()[\"duration\"] > 0\nTrue",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "class PerformanceMonitor",
+      "type": "example_section",
+      "code": ">>> with PerformanceMonitor(\"test_operation\") as monitor:\n    ...     time.sleep(0.1)  # Simulate work\n    ...     monitor.add_metric(\"items_processed\", 42)\n    >>> monitor.get_results()[\"duration\"] > 0\n    True",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function create_validators",
+      "type": "doctest",
+      "code": ">>> validators = create_validators(min_length=3, max_length=10, allowed_types=[str])\n>>> validate_input(\"hello\", validators)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function create_validators",
+      "type": "doctest",
+      "code": ">>> validate_input(\"hi\", validators)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function create_validators",
+      "type": "code_block",
+      "code": ">>> validators = create_validators(min_length=3, max_length=10, allowed_types=[str])\n>>> validate_input(\"hello\", validators)\nTrue\n>>> validate_input(\"hi\", validators)\nFalse",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "function create_validators",
+      "type": "example_section",
+      "code": ">>> validators = create_validators(min_length=3, max_length=10, allowed_types=[str])\n    >>> validate_input(\"hello\", validators)\n    True\n    >>> validate_input(\"hi\", validators)\n    False",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "filepath = Path(filepath)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "filepath = Path(filepath)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "text = str(text)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "result = func(*args, **kwargs)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "result = func(*args, **kwargs)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "result[key] = deep_merge_dicts(result[key], value)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "formatted_value = _format_recursive(value, level + 1)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\utils.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "formatted_item = _format_recursive(item, level + 1)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\__init__.py",
+      "context": "module",
+      "type": "doctest",
+      "code": ">>> from sample_project import SampleProcessor\n>>> processor = SampleProcessor()\n>>> result = processor.process(\"Hello World\")\n>>> print(result)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\__init__.py",
+      "context": "module",
+      "type": "code_block",
+      "code": ">>> from sample_project import SampleProcessor\n>>> processor = SampleProcessor()\n>>> result = processor.process(\"Hello World\")\n>>> print(result)\nProcessed: Hello World",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\__init__.py",
+      "context": "module",
+      "type": "code_block",
+      "code": "Basic usage of the package:",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\__init__.py",
+      "context": "module",
+      "type": "example_section",
+      "code": ">>> from sample_project import SampleProcessor\n    >>> processor = SampleProcessor()\n    >>> result = processor.process(\"Hello World\")\n    >>> print(result)\n    Processed: Hello World",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\__init__.py",
+      "context": "module",
+      "type": "example_section",
+      "code": "Basic usage of the package:",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\__init__.py",
+      "context": "function quick_setup",
+      "type": "doctest",
+      "code": ">>> processor = quick_setup(debug=True, max_items=50)\n>>> isinstance(processor, SampleProcessor)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\__init__.py",
+      "context": "function quick_setup",
+      "type": "code_block",
+      "code": ">>> processor = quick_setup(debug=True, max_items=50)\n>>> isinstance(processor, SampleProcessor)\nTrue",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\__init__.py",
+      "context": "function quick_setup",
+      "type": "example_section",
+      "code": ">>> processor = quick_setup(debug=True, max_items=50)\n    >>> isinstance(processor, SampleProcessor)\n    True",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\__init__.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "config = Config(debug=debug, **kwargs)",
+      "language": "python"
+    },
+    {
+      "file": "C:\\Users\\lwhitaker\\personal\\SYSC4918\\SYSC4918\\sample_project\\sample_project\\__init__.py",
+      "context": "usage pattern",
+      "type": "instantiation",
+      "code": "numeric_level = getattr(logging, level.upper(), logging.INFO)",
+      "language": "python"
+    }
+  ],
+  "stats": {
+    "files_processed": 7,
+    "examples_found": 133,
+    "classes_found": 17,
+    "functions_found": 43,
+    "methods_found": 67,
+    "entry_points_found": 6
+  }
+}

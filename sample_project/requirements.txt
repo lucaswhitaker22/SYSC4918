@@ -1,0 +1,104 @@
+# Core dependencies - production requirements
+requests>=2.25.0,<3.0.0
+click>=8.0.0,<9.0.0
+pydantic>=1.8.0,<3.0.0
+rich>=10.0.0,<14.0.0
+typer>=0.4.0,<1.0.0
+pyyaml>=6.0,<7.0
+configparser>=5.0.0
+
+# Optional async support
+aiohttp>=3.8.0,<4.0.0; extra == "async"
+asyncio-mqtt>=0.11.0,<1.0.0; extra == "async"
+
+# Data processing dependencies
+pandas>=1.3.0,<3.0.0
+numpy>=1.21.0,<2.0.0
+python-dateutil>=2.8.0
+
+# HTTP and API dependencies  
+httpx>=0.24.0,<1.0.0
+urllib3>=1.26.0,<3.0.0
+
+# Configuration and environment
+python-dotenv>=0.19.0,<2.0.0
+toml>=0.10.2
+tomli>=2.0.0; python_version < "3.11"
+tomli-w>=1.0.0
+
+# Logging and monitoring
+structlog>=21.0.0,<24.0.0
+colorlog>=6.0.0,<7.0.0
+
+# Validation and schema
+jsonschema>=4.0.0,<5.0.0
+marshmallow>=3.17.0,<4.0.0
+
+# Utility libraries
+pathlib2>=2.3.0; python_version < "3.4"
+importlib-metadata>=4.0.0; python_version < "3.8"
+typing-extensions>=4.0.0; python_version < "3.8"
+
+# Database support (optional)
+sqlalchemy>=1.4.0,<3.0.0
+alembic>=1.8.0,<2.0.0
+
+# Caching
+redis>=4.0.0,<5.0.0
+diskcache>=5.4.0,<6.0.0
+
+# Security
+cryptography>=3.4.0,<42.0.0
+bcrypt>=3.2.0,<5.0.0
+
+# Template engine
+jinja2>=3.0.0,<4.0.0
+
+# File processing
+openpyxl>=3.0.0,<4.0.0
+xlrd>=2.0.0,<3.0.0
+
+# Development tools (should be in requirements-dev.txt in real projects)
+# pytest>=7.0.0,<8.0.0
+# pytest-cov>=4.0.0,<5.0.0
+# black>=22.0.0,<24.0.0
+# flake8>=4.0.0,<7.0.0
+# mypy>=1.0.0,<2.0.0
+
+# Documentation (should be in requirements-docs.txt in real projects)  
+# sphinx>=4.0.0,<8.0.0
+# sphinx-rtd-theme>=1.0.0,<2.0.0
+
+# Performance optimization
+cachetools>=5.0.0,<6.0.0
+lru-dict>=1.1.0,<2.0.0
+
+# CLI enhancements
+colorama>=0.4.0,<1.0.0; sys_platform == "win32"
+termcolor>=1.1.0,<3.0.0
+
+# Progress bars and UI
+tqdm>=4.64.0,<5.0.0
+alive-progress>=2.4.0,<4.0.0
+
+# Network utilities  
+dnspython>=2.2.0,<3.0.0
+validators>=0.20.0,<1.0.0
+
+# Text processing
+regex>=2022.0.0,<2024.0.0
+fuzzywuzzy>=0.18.0,<1.0.0
+python-levenshtein>=0.20.0,<1.0.0
+
+# Time and scheduling
+pytz>=2022.0,<2024.0
+croniter>=1.3.0,<2.0.0
+schedule>=1.2.0,<2.0.0
+
+# System integration
+psutil>=5.9.0,<6.0.0
+watchdog>=2.1.0,<4.0.0
+
+# Compatibility and polyfills
+six>=1.16.0,<2.0.0
+backports.zoneinfo>=0.2.0; python_version < "3.9"

@@ -14,7 +14,14 @@ def parse_code_file(file_path: str, extract_full_code: bool = False) -> Optional
         with open(file_path, "r", encoding="utf-8") as f:
             source = f.read()
         tree = ast.parse(source)
-    except Exception:
+    except UnicodeDecodeError as e:
+        logger.warning(f"Encoding error reading {file_path}: {e}")
+        return None
+    except SyntaxError as e:
+        logger.warning(f"Syntax error parsing {file_path}: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to parse {file_path}: {e}")
         return None
 
     module_name = Path(file_path).stem

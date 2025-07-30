@@ -7,6 +7,22 @@ from .example_parser import parse_examples
 from .code_parser import parse_code_file
 from .entry_point_parser import parse_entry_points
 
+def _is_test_file(file_path: str) -> bool:
+        """Check if a file is a test file based on naming conventions."""
+        path = Path(file_path)
+        
+        # Check if file is in a test directory
+        if any(part.lower() in ('test', 'tests') for part in path.parts[:-1]):
+            return True
+        
+        # Check if filename suggests it's a test
+        name = path.stem.lower()
+        if name.startswith('test_') or name.endswith('_test') or name == 'test':
+            return True
+        
+        return False
+
+
 def parse_project(
     project_path: str,
     include_tests: bool = False,
@@ -29,7 +45,7 @@ def parse_project(
     if not include_tests:
         structure = [
             mod for mod in structure
-            if all('test' not in part.lower() for part in Path(mod["file"]).parts)
+            if not _is_test_file(mod["file"])
         ]
 
     # Parse detailed code information for each module
