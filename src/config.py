@@ -85,6 +85,9 @@ def load_config(config_path: Union[str, Path]) -> Config:
         config = Config()
         config.update(data)
         
+        # FIXED: Reload API key from environment after updating model_name from file
+        config._load_api_key_from_env()
+        
         logger.info(f"Loaded configuration from {config_path}")
         return config
         
@@ -92,6 +95,7 @@ def load_config(config_path: Union[str, Path]) -> Config:
         raise ValueError(f"Invalid JSON in configuration file: {e}")
     except Exception as e:
         raise ValueError(f"Failed to load configuration: {e}")
+
 
 def save_config(config: Config, config_path: Union[str, Path]) -> None:
     """Save configuration to JSON file."""
