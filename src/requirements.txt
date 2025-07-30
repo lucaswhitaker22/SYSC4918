@@ -1,0 +1,30 @@
+# Core LLM integration dependencies
+tiktoken>=0.5.0
+openai>=1.0.0
+google-generativeai>=0.3.0
+anthropic>=0.7.0
+
+# Template and output formatting
+jinja2>=3.0.0
+click>=8.0.0
+rich>=13.0.0
+
+# Data handling and validation
+pydantic>=2.0.0
+tomli>=2.0.0
+
+# Additional utilities
+requests>=2.28.0
+python-dotenv>=0.19.0
+pathspec>=0.10.0
+
+# Development dependencies (optional)
+pytest>=7.0.0
+pytest-cov>=4.0.0
+black>=22.0.0
+flake8>=5.0.0
+mypy>=0.991
+
+# Documentation dependencies (optional)
+sphinx>=5.0.0
+sphinx-rtd-theme>=1.0.0

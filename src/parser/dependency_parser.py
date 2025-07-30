@@ -6,12 +6,12 @@ from typing import List, Dict, Any
 def parse_dependencies(project_path: str) -> List[str]:
     """
     Extract dependencies from multiple sources:
-    - pyproject.toml
-    - setup.py
-    - setup.cfg  
-    - requirements.txt files
-    - Pipfile
-    - environment.yml
+    - pyproject.toml (PEP 621 and Poetry)
+    - setup.py (install_requires)
+    - setup.cfg (options.install_requires)  
+    - requirements.txt files (and variants)
+    - Pipfile (pipenv)
+    - environment.yml (conda)
     """
     project_path = Path(project_path).resolve()
     dependencies = []
@@ -42,7 +42,7 @@ def parse_dependencies(project_path: str) -> List[str]:
     return unique_deps
 
 def _parse_pyproject_dependencies(project_path: Path) -> List[str]:
-    """Parse dependencies from pyproject.toml."""
+    """Parse dependencies from pyproject.toml (PEP 621 and Poetry)."""
     pyproject = project_path / "pyproject.toml"
     if not pyproject.exists():
         return []
@@ -184,7 +184,9 @@ def _parse_requirements_files(project_path: Path) -> List[str]:
         "requirements*.txt", 
         "reqs.txt",
         "deps.txt",
-        "dependencies.txt"
+        "dependencies.txt",
+        "dev-requirements.txt",
+        "test-requirements.txt"
     ]
     
     req_files = []

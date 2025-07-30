@@ -145,7 +145,8 @@ def load_configuration(args: argparse.Namespace) -> Config:
     config.quiet = args.quiet
     config.debug = args.debug
     config.timeout = args.timeout
-    config.cache_enabled = not getattr(args, "no_cache", False)
+    # Fixed: Removed broken cache reference since --no-cache doesn't exist
+    config.cache_enabled = True  # Default to enabled
     if args.api_key:
         config.api_key = args.api_key
     return config
@@ -251,12 +252,22 @@ async def parse_and_generate_command(args: argparse.Namespace, config: Config) -
         project_path = Path(args.project_path).resolve()
         logger.info(f"Parsing project: {project_path}")
         parsing_start = time.time()
-        # MVP: No return object/results object, just a dict.
-        result = parse_project(str(project_path))
+        
+        # FIXED: Now properly passing include_tests and include_private arguments
+        result = parse_project(
+            str(project_path),
+            include_tests=config.include_tests,
+            include_private=config.include_private
+        )
         parsing_time = time.time() - parsing_start
 
         if not config.quiet:
             print(f"✓ Project parsed in {parsing_time:.2f}s")
+            # Show stats if available
+            if 'stats' in result:
+                stats = result['stats']
+                print(f"  Files processed: {stats.get('files_processed', 0)}")
+                print(f"  Examples found: {stats.get('examples_found', 0)}")
 
         # Save JSON output
         json_output_path = args.json_output or f"{project_path.name}_parsed_data.json"
