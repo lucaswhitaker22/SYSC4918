@@ -1,608 +1,298 @@
-"""
-Example parser for extracting code examples and usage patterns from Python projects.
-
-This module extracts code examples from docstrings, example files, and usage patterns
-throughout the codebase to help generate comprehensive README documentation.
-"""
-
-import re
 import ast
+import re
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
-import logging
+from typing import List, Dict, Any
 
-from models.project_data import CodeExample, ModuleInfo, ClassInfo, FunctionInfo
-from utils.file_utils import read_file_safely, find_files_by_pattern
+def parse_examples(file_path: str) -> List[Dict[str, Any]]:
+    """
+    Extract code examples from multiple sources:
+    - Docstring examples (doctest format)
+    - Code blocks in docstrings
+    - Main guard blocks
+    - Function/class usage patterns
+    - Comments with example code
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            source = f.read()
+        tree = ast.parse(source)
+    except Exception:
+        return []
+    
+    examples = []
+    
+    # Extract from docstrings
+    examples.extend(_extract_docstring_examples(tree, file_path, source))
+    
+    # Extract main guard examples
+    examples.extend(_extract_main_guard_examples(tree, file_path, source))
+    
+    # Extract comment examples
+    examples.extend(_extract_comment_examples(source, file_path))
+    
+    # Extract usage patterns
+    examples.extend(_extract_usage_patterns(tree, file_path, source))
+    
+    return examples
 
-logger = logging.getLogger(__name__)
+def _extract_docstring_examples(tree: ast.AST, file_path: str, source: str) -> List[Dict[str, Any]]:
+    """Extract examples from docstrings (doctests and code blocks)."""
+    examples = []
+    
+    # Module docstring
+    module_docstring = ast.get_docstring(tree)
+    if module_docstring:
+        examples.extend(_parse_docstring_for_examples(module_docstring, file_path, "module"))
+    
+    # Walk through all nodes
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            class_docstring = ast.get_docstring(node)
+            if class_docstring:
+                examples.extend(_parse_docstring_for_examples(
+                    class_docstring, file_path, f"class {node.name}"
+                ))
+        elif isinstance(node, ast.FunctionDef):
+            func_docstring = ast.get_docstring(node)
+            if func_docstring:
+                examples.extend(_parse_docstring_for_examples(
+                    func_docstring, file_path, f"function {node.name}"
+                ))
+    
+    return examples
 
+def _parse_docstring_for_examples(docstring: str, file_path: str, context: str) -> List[Dict[str, Any]]:
+    """Parse a docstring for various types of examples."""
+    examples = []
+    
+    if not docstring:
+        return examples
+    
+    # 1. Doctest examples (>>> format)
+    doctest_examples = _extract_doctest_examples(docstring)
+    for example in doctest_examples:
+        examples.append({
+            "file": file_path,
+            "context": context,
+            "type": "doctest",
+            "code": example,
+            "language": "python"
+        })
+    
+    # 2. Code blocks (markdown style)
+    code_blocks = _extract_code_blocks(docstring)
+    for block in code_blocks:
+        examples.append({
+            "file": file_path,
+            "context": context,
+            "type": "code_block",
+            "code": block["code"],
+            "language": block.get("language", "python")
+        })
+    
+    # 3. Example sections
+    example_sections = _extract_example_sections(docstring)
+    for section in example_sections:
+        examples.append({
+            "file": file_path,
+            "context": context,
+            "type": "example_section",
+            "code": section,
+            "language": "python"
+        })
+    
+    return examples
 
-class ExampleParser:
-    """Parser for extracting code examples and usage patterns."""
+def _extract_doctest_examples(docstring: str) -> List[str]:
+    """Extract doctest-style examples (>>> format)."""
+    examples = []
+    current_example = []
     
-    def __init__(self):
-        # Patterns for identifying examples
-        self.example_patterns = {
-            'doctest': re.compile(r'^\s*>>>\s+(.+)$', re.MULTILINE),
-            'code_block': re.compile(r'``````', re.DOTALL),
-            'example_section': re.compile(r'(?:Examples?|Usage):?\s*\n(.*?)(?=\n\s*(?:[A-Z][a-z]+:|\Z))', re.DOTALL | re.IGNORECASE),
-            'import_statement': re.compile(r'(?:^|\n)((?:from\s+\w+(?:\.\w+)*\s+)?import\s+[^\n]+)', re.MULTILINE),
-            'function_call': re.compile(r'(\w+)\s*\([^)]*\)', re.MULTILINE),
-        }
-        
-        # Common example file patterns
-        self.example_file_patterns = [
-            'example*.py', 'examples*.py', 'demo*.py', 'sample*.py',
-            'tutorial*.py', 'quickstart*.py', 'getting_started*.py'
-        ]
-        
-        # Usage indicators
-        self.usage_indicators = [
-            'usage', 'how to', 'example', 'demo', 'sample', 'tutorial',
-            'quickstart', 'getting started', 'basic usage', 'advanced usage'
-        ]
+    for line in docstring.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(">>>"):
+            current_example.append(stripped)
+        elif stripped.startswith("...") and current_example:
+            current_example.append(stripped)
+        elif current_example and not stripped:
+            # Empty line, might be end of example
+            continue
+        elif current_example:
+            # Non-continuation line, end current example
+            examples.append('\n'.join(current_example))
+            current_example = []
     
-    def extract_from_module(self, module: ModuleInfo) -> List[CodeExample]:
-        """
-        Extract code examples from a module.
-        
-        Args:
-            module: ModuleInfo object to extract examples from
-            
-        Returns:
-            List of CodeExample objects
-        """
-        examples = []
-        
-        try:
-            # Extract from module docstring
-            if module.docstring:
-                module_examples = self._extract_from_docstring(
-                    module.docstring, 
-                    f"Module {module.name}",
-                    module.file_path
-                )
-                examples.extend(module_examples)
-            
-            # Extract from classes
-            for class_info in module.classes:
-                class_examples = self._extract_from_class(class_info)
-                examples.extend(class_examples)
-            
-            # Extract from functions
-            for function_info in module.functions:
-                function_examples = self._extract_from_function(function_info)
-                examples.extend(function_examples)
-            
-            # Extract from source code
-            source_examples = self._extract_from_source_file(module.file_path)
-            examples.extend(source_examples)
-            
-        except Exception as e:
-            logger.error(f"Error extracting examples from module {module.name}: {e}")
-        
-        return examples
+    # Don't forget the last example
+    if current_example:
+        examples.append('\n'.join(current_example))
     
-    def extract_from_project(self, project_path: str) -> List[CodeExample]:
-        """
-        Extract code examples from an entire project.
-        
-        Args:
-            project_path: Path to project root
-            
-        Returns:
-            List of CodeExample objects
-        """
-        examples = []
-        
-        try:
-            project_path = Path(project_path)
-            
-            # Find example files
-            example_files = self._find_example_files(project_path)
-            
-            # Extract from example files
-            for file_path in example_files:
-                file_examples = self._extract_from_example_file(file_path)
-                examples.extend(file_examples)
-            
-            # Extract from README and documentation
-            readme_examples = self._extract_from_readme(project_path)
-            examples.extend(readme_examples)
-            
-            # Extract from test files (for usage patterns)
-            test_examples = self._extract_from_test_files(project_path)
-            examples.extend(test_examples)
-            
-        except Exception as e:
-            logger.error(f"Error extracting examples from project: {e}")
-        
-        return examples
+    return examples
+
+def _extract_code_blocks(docstring: str) -> List[Dict[str, Any]]:
+    """Extract code blocks from markdown-style formatting."""
+    blocks = []
     
-    def _extract_from_docstring(self, docstring: str, context: str, file_path: Optional[str] = None) -> List[CodeExample]:
-        """Extract examples from a docstring."""
-        examples = []
-        
-        # Extract doctests
-        doctest_examples = self._extract_doctests(docstring, context, file_path)
-        examples.extend(doctest_examples)
-        
-        # Extract code blocks
-        code_block_examples = self._extract_code_blocks(docstring, context, file_path)
-        examples.extend(code_block_examples)
-        
-        # Extract example sections
-        example_sections = self._extract_example_sections(docstring, context, file_path)
-        examples.extend(example_sections)
-        
-        return examples
+    # Pattern for fenced code blocks
+    fenced_pattern = r'``````'
+    matches = re.findall(fenced_pattern, docstring, re.DOTALL)
     
-    def _extract_from_class(self, class_info: ClassInfo) -> List[CodeExample]:
-        """Extract examples from a class."""
-        examples = []
-        
-        # Extract from class docstring
-        if class_info.docstring:
-            class_examples = self._extract_from_docstring(
-                class_info.docstring,
-                f"Class {class_info.name}",
-                class_info.file_path
-            )
-            examples.extend(class_examples)
-        
-        # Extract from method docstrings
-        for method in class_info.methods:
-            if method.docstring:
-                method_examples = self._extract_from_docstring(
-                    method.docstring,
-                    f"Method {class_info.name}.{method.name}",
-                    method.file_path
-                )
-                examples.extend(method_examples)
-        
-        return examples
+    for language, code in matches:
+        blocks.append({
+            "code": code.strip(),
+            "language": language or "python"
+        })
     
-    def _extract_from_function(self, function_info: FunctionInfo) -> List[CodeExample]:
-        """Extract examples from a function."""
-        examples = []
-        
-        if function_info.docstring:
-            function_examples = self._extract_from_docstring(
-                function_info.docstring,
-                f"Function {function_info.name}",
-                function_info.file_path
-            )
-            examples.extend(function_examples)
-        
-        return examples
+    # Pattern for indented code blocks (following "Example:" or similar)
+    example_pattern = r'(?:Example|Usage|Code):\s*\n((?:    .*\n?)+)'
+    matches = re.findall(example_pattern, docstring, re.MULTILINE)
     
-    def _extract_doctests(self, docstring: str, context: str, file_path: Optional[str] = None) -> List[CodeExample]:
-        """Extract doctest examples from docstring."""
-        examples = []
-        
-        # Find all doctest blocks
-        doctest_blocks = []
-        current_block = []
-        
-        for line in docstring.split('\n'):
-            if re.match(r'^\s*>>>\s+', line):
-                # Start of doctest line
-                current_block.append(line.strip())
-            elif re.match(r'^\s*\.\.\.\s+', line):
-                # Continuation line
-                current_block.append(line.strip())
-            elif current_block and not line.strip():
-                # Empty line, might be end of block
-                continue
-            elif current_block and not re.match(r'^\s*>>>', line):
-                # Non-doctest line after doctest block
-                if current_block:
-                    doctest_blocks.append(current_block)
-                    current_block = []
-        
-        # Add final block
-        if current_block:
-            doctest_blocks.append(current_block)
-        
-        # Convert blocks to examples
-        for i, block in enumerate(doctest_blocks):
-            if len(block) > 0:
-                # Clean up doctest syntax
-                code_lines = []
-                for line in block:
-                    if line.startswith('>>>'):
-                        code_lines.append(line[3:].strip())
-                    elif line.startswith('...'):
-                        code_lines.append(line[3:].strip())
-                
-                code = '\n'.join(code_lines)
-                
-                example = CodeExample(
-                    title=f"Doctest example from {context}",
-                    code=code,
-                    description=f"Doctest example {i+1}",
-                    file_path=file_path,
-                    example_type="doctest",
-                    is_executable=True
-                )
-                examples.append(example)
-        
-        return examples
-    
-    def _extract_code_blocks(self, docstring: str, context: str, file_path: Optional[str] = None) -> List[CodeExample]:
-        """Extract code blocks from docstring."""
-        examples = []
-        
-        # Find code blocks
-        code_blocks = self.example_patterns['code_block'].findall(docstring)
-        
-        for i, code_block in enumerate(code_blocks):
-            code = code_block.strip()
-            
+    for match in matches:
+        # Remove common indentation
+        lines = match.split('\n')
+        if lines:
+            # Find minimum indentation
+            min_indent = min(len(line) - len(line.lstrip()) 
+                           for line in lines if line.strip())
+            # Remove common indentation
+            code_lines = [line[min_indent:] if len(line) >= min_indent else line 
+                         for line in lines]
+            code = '\n'.join(code_lines).strip()
             if code:
-                example = CodeExample(
-                    title=f"Code example from {context}",
-                    code=code,
-                    description=f"Code block {i+1}",
-                    file_path=file_path,
-                    example_type="code_block",
-                    is_executable=self._is_executable_code(code)
-                )
-                examples.append(example)
-        
-        return examples
+                blocks.append({
+                    "code": code,
+                    "language": "python"
+                })
     
-    def _extract_example_sections(self, docstring: str, context: str, file_path: Optional[str] = None) -> List[CodeExample]:
-        """Extract example sections from docstring."""
-        examples = []
-        
-        # Find example sections
-        example_sections = self.example_patterns['example_section'].findall(docstring)
-        
-        for i, section in enumerate(example_sections):
-            # Look for code within the section
+    return blocks
+
+def _extract_example_sections(docstring: str) -> List[str]:
+    """Extract dedicated example sections."""
+    examples = []
+    
+    # Look for sections starting with "Examples:", "Example:", etc.
+    sections = re.split(r'\n\s*(Examples?|Usage|Sample Code):\s*\n', docstring, flags=re.IGNORECASE)
+    
+    for i in range(1, len(sections), 2):  # Every other section starting from 1
+        if i + 1 < len(sections):
+            example_content = sections[i + 1].split('\n\n')[0]  # Take first paragraph
+            if example_content.strip():
+                examples.append(example_content.strip())
+    
+    return examples
+
+def _extract_main_guard_examples(tree: ast.AST, file_path: str, source: str) -> List[Dict[str, Any]]:
+    """Extract examples from if __name__ == '__main__': blocks."""
+    examples = []
+    
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.If) and 
+            isinstance(node.test, ast.Compare) and
+            isinstance(node.test.left, ast.Name) and
+            node.test.left.id == '__name__'):
+            
+            # Extract the code from the main guard
+            start_line = node.lineno - 1
+            end_line = node.end_lineno if hasattr(node, 'end_lineno') else start_line + 10
+            
+            source_lines = source.split('\n')
+            if start_line < len(source_lines):
+                # Find the actual end of the if block
+                main_guard_lines = []
+                indent_level = None
+                
+                for i in range(start_line, min(end_line, len(source_lines))):
+                    line = source_lines[i]
+                    if indent_level is None and line.strip():
+                        indent_level = len(line) - len(line.lstrip())
+                    
+                    if line.strip():  # Non-empty line
+                        current_indent = len(line) - len(line.lstrip())
+                        if current_indent >= indent_level:
+                            main_guard_lines.append(line)
+                        else:
+                            break
+                    else:
+                        main_guard_lines.append(line)
+                
+                if main_guard_lines:
+                    code = '\n'.join(main_guard_lines)
+                    examples.append({
+                        "file": file_path,
+                        "context": "main guard",
+                        "type": "main_example",
+                        "code": code.strip(),
+                        "language": "python"
+                    })
+    
+    return examples
+
+def _extract_comment_examples(source: str, file_path: str) -> List[Dict[str, Any]]:
+    """Extract examples from comments."""
+    examples = []
+    
+    # Look for comment blocks that contain example code
+    comment_blocks = []
+    current_block = []
+    
+    for line in source.split('\n'):
+        stripped = line.strip()
+        if stripped.startswith('#') and len(stripped) > 1:
+            comment_text = stripped[1:].strip()
+            if comment_text:
+                current_block.append(comment_text)
+        elif current_block:
+            comment_blocks.append('\n'.join(current_block))
+            current_block = []
+    
+    if current_block:
+        comment_blocks.append('\n'.join(current_block))
+    
+    # Look for example patterns in comment blocks
+    for block in comment_blocks:
+        if any(keyword in block.lower() for keyword in ['example', 'usage', 'sample', 'demo']):
+            # Try to extract code-like content
             code_lines = []
-            for line in section.split('\n'):
-                line = line.strip()
-                # Skip empty lines and common documentation patterns
-                if line and not line.startswith(('Args:', 'Returns:', 'Raises:', 'Note:')):
-                    # Check if line looks like code
-                    if (line.startswith(('>>>', '...', 'import ', 'from ')) or
-                        '(' in line or '=' in line or line.endswith(':')):
-                        code_lines.append(line)
+            for line in block.split('\n'):
+                # Look for lines that look like code
+                if (any(char in line for char in ['=', '(', ')', '.', 'import', 'from', 'def', 'class']) 
+                    and not line.lower().startswith(('example', 'usage', 'sample', 'demo'))):
+                    code_lines.append(line)
             
             if code_lines:
-                code = '\n'.join(code_lines)
+                examples.append({
+                    "file": file_path,
+                    "context": "comment",
+                    "type": "comment_example",
+                    "code": '\n'.join(code_lines),
+                    "language": "python"
+                })
+    
+    return examples
+
+def _extract_usage_patterns(tree: ast.AST, file_path: str, source: str) -> List[Dict[str, Any]]:
+    """Extract common usage patterns from the code itself."""
+    examples = []
+    
+    # Look for class instantiation patterns
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            # Look for assignments that might be examples
+            if (isinstance(node.value, ast.Call) and 
+                isinstance(node.value.func, ast.Name)):
                 
-                example = CodeExample(
-                    title=f"Example from {context}",
-                    code=code,
-                    description=f"Example section {i+1}",
-                    file_path=file_path,
-                    example_type="example_section",
-                    is_executable=self._is_executable_code(code)
-                )
-                examples.append(example)
-        
-        return examples
+                # Get the source code for this assignment
+                if hasattr(node, 'lineno'):
+                    line_no = node.lineno - 1
+                    source_lines = source.split('\n')
+                    if line_no < len(source_lines):
+                        line = source_lines[line_no].strip()
+                        if line and not line.startswith(('_', 'self.')):
+                            examples.append({
+                                "file": file_path,
+                                "context": "usage pattern",
+                                "type": "instantiation",
+                                "code": line,
+                                "language": "python"
+                            })
     
-    def _extract_from_source_file(self, file_path: str) -> List[CodeExample]:
-        """Extract examples from source file by analyzing the code."""
-        examples = []
-        
-        try:
-            content = read_file_safely(file_path)
-            if not content:
-                return examples
-            
-            # Parse the file to find example patterns
-            tree = ast.parse(content)
-            
-            # Look for if __name__ == "__main__": blocks
-            main_examples = self._extract_main_block_examples(tree, file_path)
-            examples.extend(main_examples)
-            
-            # Look for example functions
-            example_functions = self._extract_example_functions(tree, file_path)
-            examples.extend(example_functions)
-            
-        except Exception as e:
-            logger.error(f"Error extracting examples from source file {file_path}: {e}")
-        
-        return examples
-    
-    def _extract_main_block_examples(self, tree: ast.AST, file_path: str) -> List[CodeExample]:
-        """Extract examples from if __name__ == "__main__": blocks."""
-        examples = []
-        
-        for node in ast.walk(tree):
-            if isinstance(node, ast.If):
-                # Check if this is a main block
-                if self._is_main_block(node):
-                    # Extract code from the main block
-                    code_lines = []
-                    for stmt in node.body:
-                        try:
-                            code_lines.append(ast.unparse(stmt))
-                        except Exception:
-                            pass
-                    
-                    if code_lines:
-                        code = '\n'.join(code_lines)
-                        
-                        example = CodeExample(
-                            title=f"Main block example from {Path(file_path).name}",
-                            code=code,
-                            description="Example usage from main block",
-                            file_path=file_path,
-                            line_number=node.lineno,
-                            example_type="main_block",
-                            is_executable=True
-                        )
-                        examples.append(example)
-        
-        return examples
-    
-    def _extract_example_functions(self, tree: ast.AST, file_path: str) -> List[CodeExample]:
-        """Extract example functions."""
-        examples = []
-        
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
-                # Check if function name suggests it's an example
-                if any(indicator in node.name.lower() for indicator in self.usage_indicators):
-                    # Extract function body
-                    code_lines = []
-                    for stmt in node.body:
-                        try:
-                            code_lines.append(ast.unparse(stmt))
-                        except Exception:
-                            pass
-                    
-                    if code_lines:
-                        code = '\n'.join(code_lines)
-                        
-                        example = CodeExample(
-                            title=f"Example function: {node.name}",
-                            code=code,
-                            description=f"Usage example from function {node.name}",
-                            file_path=file_path,
-                            line_number=node.lineno,
-                            example_type="example_function",
-                            is_executable=True
-                        )
-                        examples.append(example)
-        
-        return examples
-    
-    def _find_example_files(self, project_path: Path) -> List[str]:
-        """Find example files in the project."""
-        example_files = []
-        
-        # Common example directories
-        example_dirs = ['examples', 'example', 'demos', 'demo', 'samples', 'sample']
-        
-        for dir_name in example_dirs:
-            example_dir = project_path / dir_name
-            if example_dir.exists():
-                for pattern in self.example_file_patterns:
-                    files = find_files_by_pattern(str(example_dir), pattern)
-                    example_files.extend(files)
-        
-        # Also check root directory
-        for pattern in self.example_file_patterns:
-            files = find_files_by_pattern(str(project_path), pattern, recursive=False)
-            example_files.extend(files)
-        
-        return example_files
-    
-    def _extract_from_example_file(self, file_path: str) -> List[CodeExample]:
-        """Extract examples from example files."""
-        examples = []
-        
-        try:
-            content = read_file_safely(file_path)
-            if not content:
-                return examples
-            
-            # Parse the file
-            tree = ast.parse(content)
-            
-            # Extract module docstring
-            module_docstring = ast.get_docstring(tree)
-            if module_docstring:
-                docstring_examples = self._extract_from_docstring(
-                    module_docstring,
-                    f"Example file {Path(file_path).name}",
-                    file_path
-                )
-                examples.extend(docstring_examples)
-            
-            # Extract main content as example
-            example = CodeExample(
-                title=f"Example: {Path(file_path).stem}",
-                code=content,
-                description=f"Complete example from {Path(file_path).name}",
-                file_path=file_path,
-                example_type="example_file",
-                is_executable=True
-            )
-            examples.append(example)
-            
-        except Exception as e:
-            logger.error(f"Error extracting from example file {file_path}: {e}")
-        
-        return examples
-    
-    def _extract_from_readme(self, project_path: Path) -> List[CodeExample]:
-        """Extract examples from README files."""
-        examples = []
-        
-        # Look for README files
-        readme_patterns = ['README.md', 'README.rst', 'README.txt', 'readme.md', 'readme.rst']
-        
-        for pattern in readme_patterns:
-            readme_file = project_path / pattern
-            if readme_file.exists():
-                try:
-                    content = read_file_safely(str(readme_file))
-                    if content:
-                        # Extract code blocks
-                        code_blocks = self.example_patterns['code_block'].findall(content)
-                        
-                        for i, code_block in enumerate(code_blocks):
-                            code = code_block.strip()
-                            if code and ('import ' in code or 'from ' in code):
-                                example = CodeExample(
-                                    title=f"README example {i+1}",
-                                    code=code,
-                                    description=f"Usage example from README",
-                                    file_path=str(readme_file),
-                                    example_type="readme",
-                                    is_executable=self._is_executable_code(code)
-                                )
-                                examples.append(example)
-                
-                except Exception as e:
-                    logger.error(f"Error extracting from README {readme_file}: {e}")
-        
-        return examples
-    
-    def _extract_from_test_files(self, project_path: Path) -> List[CodeExample]:
-        """Extract usage patterns from test files."""
-        examples = []
-        
-        # Find test files
-        test_patterns = ['test_*.py', '*_test.py']
-        test_dirs = ['tests', 'test']
-        
-        for test_dir in test_dirs:
-            test_directory = project_path / test_dir
-            if test_directory.exists():
-                for pattern in test_patterns:
-                    test_files = find_files_by_pattern(str(test_directory), pattern)
-                    
-                    for test_file in test_files[:5]:  # Limit to 5 test files
-                        try:
-                            file_examples = self._extract_usage_from_test_file(test_file)
-                            examples.extend(file_examples)
-                        except Exception as e:
-                            logger.error(f"Error extracting from test file {test_file}: {e}")
-        
-        return examples
-    
-    def _extract_usage_from_test_file(self, test_file: str) -> List[CodeExample]:
-        """Extract usage patterns from a test file."""
-        examples = []
-        
-        try:
-            content = read_file_safely(test_file)
-            if not content:
-                return examples
-            
-            tree = ast.parse(content)
-            
-            # Look for test functions
-            for node in ast.walk(tree):
-                if isinstance(node, ast.FunctionDef) and node.name.startswith('test_'):
-                    # Extract simple usage patterns
-                    code_lines = []
-                    for stmt in node.body:
-                        # Look for simple statements that show usage
-                        if isinstance(stmt, ast.Expr) or isinstance(stmt, ast.Assign):
-                            try:
-                                line = ast.unparse(stmt)
-                                if any(pattern in line for pattern in ['assert', '=', '(']):
-                                    code_lines.append(line)
-                            except Exception:
-                                pass
-                    
-                    if code_lines and len(code_lines) <= 5:  # Keep it simple
-                        code = '\n'.join(code_lines)
-                        
-                        example = CodeExample(
-                            title=f"Test usage: {node.name}",
-                            code=code,
-                            description=f"Usage pattern from test {node.name}",
-                            file_path=test_file,
-                            line_number=node.lineno,
-                            example_type="test_usage",
-                            is_executable=False
-                        )
-                        examples.append(example)
-        
-        except Exception as e:
-            logger.error(f"Error parsing test file {test_file}: {e}")
-        
-        return examples
-    
-    def _is_main_block(self, node: ast.If) -> bool:
-        """Check if an if statement is a main block."""
-        try:
-            # Check if condition is __name__ == "__main__"
-            if isinstance(node.test, ast.Compare):
-                left = node.test.left
-                comparators = node.test.comparators
-                
-                if (isinstance(left, ast.Name) and left.id == '__name__' and
-                    len(comparators) == 1 and isinstance(comparators[0], ast.Constant) and
-                    comparators[0].value == '__main__'):
-                    return True
-        except Exception:
-            pass
-        
-        return False
-    
-    def _is_executable_code(self, code: str) -> bool:
-        """Check if code is likely executable."""
-        # Simple heuristics to determine if code is executable
-        indicators = [
-            'import ', 'from ', 'def ', 'class ', 'if ', 'for ', 'while ',
-            'try:', 'with ', 'assert ', 'return ', 'yield ', 'print('
-        ]
-        
-        return any(indicator in code for indicator in indicators)
-
-
-# Convenience functions
-def extract_code_examples(module: ModuleInfo) -> List[CodeExample]:
-    """
-    Extract code examples from a module.
-    
-    Args:
-        module: ModuleInfo object to extract examples from
-        
-    Returns:
-        List of CodeExample objects
-    """
-    parser = ExampleParser()
-    return parser.extract_from_module(module)
-
-
-def parse_docstring_examples(docstring: str, context: str = "Unknown") -> List[CodeExample]:
-    """
-    Parse code examples from a docstring.
-    
-    Args:
-        docstring: Docstring text to parse
-        context: Context description for the examples
-        
-    Returns:
-        List of CodeExample objects
-    """
-    parser = ExampleParser()
-    return parser._extract_from_docstring(docstring, context)
-
-
-def find_usage_patterns(project_path: str) -> List[CodeExample]:
-    """
-    Find usage patterns in a Python project.
-    
-    Args:
-        project_path: Path to project root
-        
-    Returns:
-        List of CodeExample objects
-    """
-    parser = ExampleParser()
-    return parser.extract_from_project(project_path)
+    return examples

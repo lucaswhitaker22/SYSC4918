@@ -1,6 +1,6 @@
 import os
 
-base_dir = r'/workspaces/SYSC4918/src'
+base_dir = r'C:/Users/lwhitaker/personal\SYSC4918\SYSC4918\src'
 output_file = 'cocat.txt'
 
 
