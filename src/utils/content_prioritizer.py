@@ -1,3 +1,5 @@
+from .token_counter import estimate_tokens
+
 def filter_content_under_token_limit(items, max_tokens):
     """Yield as many items as fit under max_tokens (approx)."""
     total = 0

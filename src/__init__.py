@@ -1,22 +1,10 @@
 """
 README Generator - Automated README generation for Python projects.
-
-This package provides a command-line tool that automatically generates comprehensive
-README files for Python projects using Large Language Model APIs. It intelligently
-parses and extracts key information from codebases to create high-quality documentation
-within LLM context window constraints.
-
-Features:
-- Comprehensive project analysis and parsing
-- Token-aware content optimization for LLM APIs
-- Multiple LLM provider support (Gemini, OpenAI, Claude)
-- Intelligent content prioritization
-- Error handling and graceful degradation
 """
 
-from .parser.project_parser import parse_project, parse_project_to_json
-from .utils.token_counter import estimate_tokens, count_tokens_in_text
-from .utils.content_prioritizer import prioritize_project_data
+from .parser.project_parser import parse_project
+from .utils.token_counter import estimate_tokens, count_tokens_in_dict
+from .utils.content_prioritizer import filter_content_under_token_limit
 from .utils.json_serializer import serialize_project_data
 from .config import Config, load_config, save_config
 
@@ -30,12 +18,11 @@ __url__ = "https://github.com/yourusername/readme-generator"
 __all__ = [
     # Core parsing functions
     "parse_project",
-    "parse_project_to_json",
     
     # Utility functions
     "estimate_tokens",
-    "count_tokens_in_text",
-    "prioritize_project_data",
+    "count_tokens_in_dict",
+    "filter_content_under_token_limit",
     "serialize_project_data",
     
     # Configuration

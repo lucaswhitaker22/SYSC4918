@@ -1,11 +1,11 @@
 from pathlib import Path
 from typing import Any, Dict, List
-from parser.metadata_parser import parse_metadata
-from parser.dependency_parser import parse_dependencies
-from parser.structure_parser import parse_structure
-from parser.example_parser import parse_examples
-from parser.code_parser import parse_code_file
-from parser.entry_point_parser import parse_entry_points
+from .metadata_parser import parse_metadata
+from .dependency_parser import parse_dependencies
+from .structure_parser import parse_structure
+from .example_parser import parse_examples
+from .code_parser import parse_code_file
+from .entry_point_parser import parse_entry_points
 
 def parse_project(
     project_path: str,

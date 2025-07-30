@@ -1,0 +1,2162 @@
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\cli.py
+"""
+Command-line interface for the README generator.
+
+This module provides the main CLI functionality for automatically generating
+comprehensive README files for Python projects using LLM APIs,
+optimized for Gemini 2.5 Pro with a 1M token window.
+"""
+
+import os
+import sys
+import argparse
+import time
+import json
+import asyncio
+from pathlib import Path
+import logging
+
+# Optional: Third-party LLM APIs
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+
+try:
+    import openai
+except ImportError:
+    openai = None
+
+try:
+    import anthropic
+except ImportError:
+    anthropic = None
+
+from config import Config, load_config, save_config
+from parser.project_parser import parse_project
+from utils.token_counter import estimate_tokens
+from utils.file_utils import create_directory
+from utils.json_serializer import serialize_project_data, save_json_to_file
+
+logger = logging.getLogger(__name__)
+
+class CLIError(Exception):
+    pass
+
+class LLMAPIError(Exception):
+    pass
+
+def create_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="readme-generator",
+        description="Generate a README for a Python project using LLMs.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  readme-generator /path/to/project
+  readme-generator . --output custom_readme.md
+  readme-generator /path/to/project --model gemini_2_5_pro
+  readme-generator /path/to/project --api-key YOUR_API_KEY
+  readme-generator --init-config
+
+Performance Target:
+  Generates README for projects up to 25 files/5,000 lines in under 90 seconds
+        """
+    )
+    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
+    parser.add_argument('--parse-only', action='store_true', help='Only parse project data to JSON, skip README generation')
+    parser.add_argument('project_path', nargs='?', help='Path to the Python project root directory')
+    parser.add_argument('--output', '-o', type=str, default='README.md', help='Output README file path')
+    parser.add_argument('--json-output', type=str, help='Save parsed project data as JSON file')
+    parser.add_argument('--model', choices=['gemini_2_5_pro', 'gemini_2_5_flash', 'gpt_4o', 'gpt_4o_mini', 'claude_sonnet'], default='gemini_2_5_pro', help='LLM model to use')
+    parser.add_argument('--api-key', type=str, help='API key for LLM service')
+    parser.add_argument('--max-tokens', type=int, default=1_000_000, help='Maximum token budget')
+    parser.add_argument('--include-tests', action='store_true', help='Include test files in analysis')
+    parser.add_argument('--include-private', action='store_true', help='Include private methods and classes')
+    parser.add_argument('--config', type=str, help='Path to configuration file')
+    parser.add_argument('--init-config', action='store_true', help='Initialize configuration file with default settings')
+    parser.add_argument('--save-config', type=str, help='Save current settings to configuration file')
+    parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output')
+    parser.add_argument('--quiet', '-q', action='store_true', help='Suppress non-error output')
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode with detailed logging')
+    parser.add_argument('--timeout', type=int, default=90, help='Timeout in seconds')
+    return parser
+
+def validate_arguments(args: argparse.Namespace) -> None:
+    if args.init_config:
+        return
+    if not args.project_path:
+        raise CLIError("Project path is required. Use --help for usage information.")
+    project_path = Path(args.project_path).resolve()
+    if not project_path.exists():
+        raise CLIError(f"Project path does not exist: {args.project_path}")
+    if not project_path.is_dir():
+        raise CLIError(f"Project path is not a directory: {args.project_path}")
+    python_indicators = ['setup.py', 'pyproject.toml', 'requirements.txt', '__init__.py']
+    has_python_files = any((project_path / indicator).exists() for indicator in python_indicators)
+    has_py_files = any(project_path.glob('**/*.py'))
+    if not has_python_files and not has_py_files:
+        logger.warning(f"No Python project indicators found in {project_path}")
+    if args.max_tokens < 1000:
+        raise CLIError("Maximum tokens must be at least 1000")
+    if args.timeout < 1:
+        raise CLIError("Timeout must be at least 1 second")
+    if args.timeout > 300:
+        logger.warning(f"Timeout of {args.timeout}s exceeds recommended 90s performance target")
+
+def validate_api_requirements(model_name: str, api_key: str) -> str:
+    env_key_mapping = {
+        'gemini_2_5_pro': 'GEMINI_API_KEY',
+        'gemini_2_5_flash': 'GEMINI_API_KEY', 
+        'gpt_4o': 'OPENAI_API_KEY',
+        'gpt_4o_mini': 'OPENAI_API_KEY',
+        'claude_sonnet': 'ANTHROPIC_API_KEY'
+    }
+    if not api_key:
+        env_var = env_key_mapping.get(model_name)
+        if env_var:
+            api_key = os.getenv(env_var)
+    if not api_key:
+        env_var = env_key_mapping.get(model_name, 'API_KEY')
+        raise CLIError(
+            f"API key required for {model_name}. Provide via --api-key or {env_var}."
+        )
+    if model_name.startswith('gemini') and not genai:
+        raise CLIError("google-generativeai package required for Gemini models.")
+    elif model_name.startswith('gpt') and not openai:
+        raise CLIError("openai package required for OpenAI models.")
+    elif model_name.startswith('claude') and not anthropic:
+        raise CLIError("anthropic package required for Claude models.")
+    return api_key
+
+def load_configuration(args: argparse.Namespace) -> Config:
+    config = Config()
+    if args.config:
+        try:
+            loaded_config = load_config(args.config)
+            config.update(loaded_config)
+            logger.info(f"Loaded configuration from {args.config}")
+        except Exception as e:
+            logger.warning(f"Failed to load configuration: {e}")
+    config.model_name = args.model
+    config.max_tokens = args.max_tokens
+    config.include_tests = args.include_tests
+    config.include_private = args.include_private
+    config.verbose = args.verbose
+    config.quiet = args.quiet
+    config.debug = args.debug
+    config.timeout = args.timeout
+    # Fixed: Removed broken cache reference since --no-cache doesn't exist
+    config.cache_enabled = True  # Default to enabled
+    if args.api_key:
+        config.api_key = args.api_key
+    return config
+
+async def generate_readme_with_llm(project_data: dict, config: Config, api_key: str) -> str:
+    # MVP: project_data is a dict from the MVP parser
+    serialized_data = serialize_project_data(project_data)
+    token_count = estimate_tokens(json.dumps(serialized_data))
+    logger.info(f"Sending ~{token_count:,} tokens to {config.model_name}")
+    if token_count > config.max_tokens:
+        logger.warning(f"Token count ({token_count:,}) exceeds limit ({config.max_tokens:,})")
+    prompt = create_readme_prompt(serialized_data, serialized_data.get('project_metadata', {}).get('name', 'Project'))
+    if config.model_name.startswith('gemini'):
+        return await generate_with_gemini(prompt, api_key)
+    elif config.model_name.startswith('gpt'):
+        return await generate_with_openai(prompt, api_key)
+    elif config.model_name.startswith('claude'):
+        return await generate_with_claude(prompt, api_key)
+    else:
+        raise LLMAPIError(f"Unsupported model: {config.model_name}")
+
+def create_readme_prompt(project_data: dict, project_name: str) -> str:
+    return f"""You are an expert technical writer specializing in creating comprehensive README files for Python projects.
+Generate a professional, well-structured README.md file for the project "{project_name}" based on the following parsed project information:
+{json.dumps(project_data, indent=2)}
+
+Requirements:
+1. Create a complete README with these essential sections:
+   - Project Description (clear, concise overview)
+   - Installation Instructions
+   - Usage Examples
+   - Project Structure
+   - Dependencies
+   - API Documentation (key classes/functions)
+2. Use proper Markdown formatting.
+3. Be accurate to the actual project structure and dependencies.
+Only output the README content in Markdown format."""
+
+async def generate_with_gemini(prompt: str, api_key: str) -> str:
+    if not genai:
+        raise LLMAPIError("google-generativeai package not available")
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(model_name="gemini-2.5-pro")
+        logger.info(f"Generating README with Gemini 2.5 Pro")
+        response = await model.generate_content_async(prompt)
+        if not response.text:
+            raise LLMAPIError("No content from Gemini API")
+        return response.text
+    except Exception as e:
+        raise LLMAPIError(str(e))
+
+async def generate_with_openai(prompt: str, api_key: str) -> str:
+    if not openai:
+        raise LLMAPIError("openai package not available")
+    try:
+        client = openai.AsyncOpenAI(api_key=api_key)
+        response = await client.chat.completions.create(
+            model='gpt-4o',
+            messages=[{"role": "system", "content": "You are an expert technical writer."},{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=4096
+        )
+        if not response.choices or not response.choices[0].message.content:
+            raise LLMAPIError("No content from OpenAI API")
+        return response.choices[0].message.content
+    except Exception as e:
+        raise LLMAPIError(str(e))
+
+async def generate_with_claude(prompt: str, api_key: str) -> str:
+    if not anthropic:
+        raise LLMAPIError("anthropic package not available")
+    try:
+        client = anthropic.AsyncAnthropic(api_key=api_key)
+        response = await client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=4096,
+            temperature=0.7,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        if not response.content or not response.content[0].text:
+            raise LLMAPIError("No content from Claude API")
+        return response.content[0].text
+    except Exception as e:
+        raise LLMAPIError(str(e))
+
+def init_config_command(args: argparse.Namespace) -> None:
+    config_path = "readme_generator_config.json"
+    try:
+        config = Config()
+        config.model_name = "gemini_2_5_pro"
+        config.max_tokens = 1_000_000
+        config.timeout = 90
+        save_config(config, config_path)
+        print(f"✓ Configuration file created: {config_path}")
+        print("Edit it to customize settings.")
+    except Exception as e:
+        raise CLIError(f"Failed to create configuration file: {e}")
+
+async def parse_and_generate_command(args: argparse.Namespace, config: Config) -> None:
+    start_time = time.time()
+    try:
+        project_path = Path(args.project_path).resolve()
+        logger.info(f"Parsing project: {project_path}")
+        parsing_start = time.time()
+        
+        # FIXED: Now properly passing include_tests and include_private arguments
+        result = parse_project(
+            str(project_path),
+            include_tests=config.include_tests,
+            include_private=config.include_private
+        )
+        parsing_time = time.time() - parsing_start
+
+        if not config.quiet:
+            print(f"✓ Project parsed in {parsing_time:.2f}s")
+            # Show stats if available
+            if 'stats' in result:
+                stats = result['stats']
+                print(f"  Files processed: {stats.get('files_processed', 0)}")
+                print(f"  Examples found: {stats.get('examples_found', 0)}")
+
+        # Save JSON output
+        json_output_path = args.json_output or f"{project_path.name}_parsed_data.json"
+        serialized_data = serialize_project_data(result)
+        success = save_json_to_file(serialized_data, json_output_path)
+        if success and not config.quiet:
+            print(f"✓ JSON data saved to: {json_output_path}")
+
+        if args.parse_only:
+            if not config.quiet:
+                print(f"✓ Parse-only mode completed in {time.time() - start_time:.2f}s")
+            return
+
+        api_key = validate_api_requirements(config.model_name, config.api_key)
+        if not config.quiet:
+            print(f"Generating README with {config.model_name}...")
+
+        generation_start = time.time()
+        readme_content = await generate_readme_with_llm(result, config, api_key)
+        generation_time = time.time() - generation_start
+
+        output_path = Path(args.output)
+        if not output_path.is_absolute():
+            output_path = project_path / output_path
+        create_directory(str(output_path.parent))
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(readme_content)
+        if not config.quiet:
+            print(f"✓ README generated in {generation_time:.2f}s")
+            print(f"✓ README saved to: {output_path}")
+
+    except Exception as e:
+        elapsed_time = time.time() - start_time
+        logger.error(f"Command failed after {elapsed_time:.2f}s: {e}")
+        raise
+
+def main():
+    try:
+        parser = create_parser()
+        args = parser.parse_args()
+        if args.init_config:
+            init_config_command(args)
+            return
+        validate_arguments(args)
+        config = load_configuration(args)
+        config.parse_only = getattr(args, 'parse_only', False)
+        if config.debug:
+            logging.getLogger().setLevel(logging.DEBUG)
+        elif config.verbose:
+            logging.getLogger().setLevel(logging.INFO)
+        elif config.quiet:
+            logging.getLogger().setLevel(logging.ERROR)
+        if args.save_config:
+            save_config(config, args.save_config)
+            if not config.quiet:
+                print(f"✓ Configuration saved to: {args.save_config}")
+        asyncio.run(parse_and_generate_command(args, config))
+    except CLIError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except KeyboardInterrupt:
+        print("\nOperation cancelled by user.")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\config.py
+"""
+Minimal configuration management for the README generator.
+"""
+
+import json
+import os
+from pathlib import Path
+from typing import Dict, Any, Optional, Union
+import logging
+
+logger = logging.getLogger(__name__)
+
+class Config:
+    """Minimal configuration for README generator."""
+    
+    def __init__(self):
+        # Core settings used by CLI
+        self.model_name: str = "gemini_2_5_pro"
+        self.max_tokens: int = 1_000_000
+        self.api_key: Optional[str] = None
+        
+        # Parsing options
+        self.include_tests: bool = False
+        self.include_private: bool = False
+        
+        # CLI options
+        self.verbose: bool = False
+        self.quiet: bool = False
+        self.debug: bool = False
+        self.timeout: int = 90
+        self.cache_enabled: bool = True
+        self.parse_only: bool = False
+        
+        # Try to get API key from environment
+        self._load_api_key_from_env()
+    
+    def _load_api_key_from_env(self) -> None:
+        """Load API key from environment variables."""
+        env_keys = {
+            "gemini_2_5_pro": "GEMINI_API_KEY",
+            "gemini_2_5_flash": "GEMINI_API_KEY",
+            "gpt_4o": "OPENAI_API_KEY",
+            "gpt_4o_mini": "OPENAI_API_KEY",
+            "claude_sonnet": "ANTHROPIC_API_KEY",
+        }
+        
+        env_key = env_keys.get(self.model_name)
+        if env_key and not self.api_key:
+            self.api_key = os.getenv(env_key)
+    
+    def update(self, other: Union['Config', Dict[str, Any]]) -> None:
+        """Update configuration with values from another config or dictionary."""
+        if isinstance(other, Config):
+            other_dict = self._to_dict(other)
+        else:
+            other_dict = other
+        
+        for key, value in other_dict.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+    
+    def _to_dict(self, config: 'Config') -> Dict[str, Any]:
+        """Convert config object to dictionary."""
+        return {
+            attr: getattr(config, attr) 
+            for attr in dir(config) 
+            if not attr.startswith('_') and not callable(getattr(config, attr))
+        }
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert this configuration to dictionary."""
+        return self._to_dict(self)
+
+def load_config(config_path: Union[str, Path]) -> Config:
+    """Load configuration from JSON file."""
+    config_path = Path(config_path)
+    
+    if not config_path.exists():
+        raise FileNotFoundError(f"Configuration file not found: {config_path}")
+    
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        config = Config()
+        config.update(data)
+        
+        logger.info(f"Loaded configuration from {config_path}")
+        return config
+        
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON in configuration file: {e}")
+    except Exception as e:
+        raise ValueError(f"Failed to load configuration: {e}")
+
+def save_config(config: Config, config_path: Union[str, Path]) -> None:
+    """Save configuration to JSON file."""
+    config_path = Path(config_path)
+    
+    # Create directory if it doesn't exist
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config.to_dict(), f, indent=2, ensure_ascii=False)
+        
+        logger.info(f"Saved configuration to {config_path}")
+        
+    except Exception as e:
+        raise IOError(f"Failed to save configuration: {e}")
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\__init__.py
+"""
+README Generator - Automated README generation for Python projects.
+
+This package provides a command-line tool that automatically generates comprehensive
+README files for Python projects using Large Language Model APIs. It intelligently
+parses and extracts key information from codebases to create high-quality documentation
+within LLM context window constraints.
+
+Features:
+- Comprehensive project analysis and parsing
+- Token-aware content optimization for LLM APIs
+- Multiple LLM provider support (Gemini, OpenAI, Claude)
+- Intelligent content prioritization
+- Error handling and graceful degradation
+"""
+
+from .parser.project_parser import parse_project
+from .utils.token_counter import estimate_tokens, count_tokens_in_text
+from .utils.content_prioritizer import prioritize_project_data
+from .utils.json_serializer import serialize_project_data
+from .config import Config, load_config, save_config
+
+__version__ = "0.1.0"
+__author__ = "Your Name"
+__email__ = "your.email@example.com"
+__description__ = "Automated README generation for Python projects using LLM APIs"
+__url__ = "https://github.com/yourusername/readme-generator"
+
+# Main API exports
+__all__ = [
+    # Core parsing functions
+    "parse_project",
+    
+    
+    # Utility functions
+    "estimate_tokens",
+    "count_tokens_in_text",
+    "prioritize_project_data",
+    "serialize_project_data",
+    
+    # Configuration
+    "Config",
+    "load_config",
+    "save_config",
+    
+    # Metadata
+    "__version__",
+    "__author__",
+    "__email__",
+    "__description__",
+    "__url__",
+]
+
+# Package-level configuration
+DEFAULT_CONFIG = {
+    "model_name": "gemini_2_5_pro",
+    "max_tokens": 1_000_000,
+    "include_tests": False,
+    "include_private": False,
+    "output_format": "markdown",
+    "verbose": False,
+    "cache_enabled": True,
+    "timeout": 90,
+}
+
+def get_version() -> str:
+    """Get the current version of the package."""
+    return __version__
+
+def get_package_info() -> dict:
+    """Get comprehensive package information."""
+    return {
+        "name": "readme-generator",
+        "version": __version__,
+        "author": __author__,
+        "email": __email__,
+        "description": __description__,
+        "url": __url__,
+        "python_requires": ">=3.8",
+        "license": "MIT",
+    }
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\__main__.py
+"""
+CLI entry point for the README generator package.
+
+This module provides the main entry point when the package is run as a module
+using 'python -m readme_generator'. It handles command-line argument parsing
+and delegates to the appropriate CLI functions.
+"""
+
+import sys
+import os
+import logging
+from pathlib import Path
+
+# Add the package to Python path if running as script
+if __name__ == "__main__":
+    # Get the directory containing this file
+    current_dir = Path(__file__).parent
+    # Add parent directory to path so we can import the package
+    sys.path.insert(0, str(current_dir.parent))
+
+from cli import main
+
+
+def setup_logging(verbose: bool = False):
+    """Set up logging configuration."""
+    log_level = logging.DEBUG if verbose else logging.INFO
+    
+    # Create formatter
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
+    # Set up console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(formatter)
+    
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+    root_logger.addHandler(console_handler)
+    
+    # Reduce noise from third-party libraries
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+    logging.getLogger('requests').setLevel(logging.WARNING)
+    logging.getLogger('httpx').setLevel(logging.WARNING)
+
+
+def check_python_version():
+    """Check if Python version is compatible."""
+    if sys.version_info < (3, 8):
+        print("Error: Python 3.8 or higher is required.")
+        print(f"You are using Python {sys.version}")
+        sys.exit(1)
+
+
+def handle_exceptions():
+    """Set up global exception handling."""
+    def exception_handler(exc_type, exc_value, exc_traceback):
+        if issubclass(exc_type, KeyboardInterrupt):
+            print("\nOperation cancelled by user.")
+            sys.exit(1)
+        else:
+            # Log the exception
+            logging.error(
+                "Uncaught exception", 
+                exc_info=(exc_type, exc_value, exc_traceback)
+            )
+            print(f"An unexpected error occurred: {exc_value}")
+            sys.exit(1)
+    
+    sys.excepthook = exception_handler
+
+
+def entry_point():
+    """Main entry point for the CLI application."""
+    try:
+        # Check Python version compatibility
+        check_python_version()
+        
+        # Set up global exception handling
+        handle_exceptions()
+        
+        # Parse arguments and determine verbosity early
+        verbose = '--verbose' in sys.argv or '-v' in sys.argv
+        
+        # Set up logging
+        setup_logging(verbose)
+        
+        # Log startup information
+        logger = logging.getLogger(__name__)
+        logger.info(f"Starting README Generator v{get_version()}")
+        logger.debug(f"Python version: {sys.version}")
+        logger.debug(f"Command line arguments: {sys.argv}")
+        
+        # Run the main CLI function
+        main()
+        
+    except Exception as e:
+        print(f"Failed to start README Generator: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    # Import version info
+    try:
+        from readme_generator import get_version
+    except ImportError:
+        def get_version():
+            return "0.1.0"
+    
+    entry_point()
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\parser\code_parser.py
+import ast
+from pathlib import Path
+from typing import Optional, Dict, Any, List
+
+def parse_code_file(file_path: str, extract_full_code: bool = False) -> Optional[Dict[str, Any]]:
+    """
+    Parse a Python file and extract detailed information including full code for entry points.
+    
+    Args:
+        file_path: Path to the Python file
+        extract_full_code: Whether to include full source code (for entry points)
+    """
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            source = f.read()
+        tree = ast.parse(source)
+    except Exception:
+        return None
+
+    module_name = Path(file_path).stem
+    module_info = {
+        "name": module_name,
+        "file": file_path,
+        "docstring": ast.get_docstring(tree),
+        "classes": [],
+        "functions": [],
+        "imports": [],
+        "constants": []
+    }
+    
+    # Include full source code for entry points
+    if extract_full_code:
+        module_info["source_code"] = source
+
+    # Parse module-level nodes
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            class_info = {
+                "name": node.name,
+                "docstring": ast.get_docstring(node),
+                "methods": [],
+                "bases": [_get_name_from_node(base) for base in node.bases],
+                "decorators": [_get_name_from_node(dec) for dec in node.decorator_list]
+            }
+            
+            # Parse class methods
+            for item in node.body:
+                if isinstance(item, ast.FunctionDef):
+                    method_info = {
+                        "name": item.name,
+                        "docstring": ast.get_docstring(item),
+                        "decorators": [_get_name_from_node(dec) for dec in item.decorator_list],
+                        "args": [arg.arg for arg in item.args.args]
+                    }
+                    class_info["methods"].append(method_info)
+            
+            module_info["classes"].append(class_info)
+            
+        elif isinstance(node, ast.FunctionDef):
+            function_info = {
+                "name": node.name,
+                "docstring": ast.get_docstring(node),
+                "decorators": [_get_name_from_node(dec) for dec in node.decorator_list],
+                "args": [arg.arg for arg in node.args.args]
+            }
+            module_info["functions"].append(function_info)
+            
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                module_info["imports"].append(alias.name)
+                
+        elif isinstance(node, ast.ImportFrom):
+            module_name = node.module or ""
+            for alias in node.names:
+                import_str = f"from {module_name} import {alias.name}" if module_name else f"import {alias.name}"
+                module_info["imports"].append(import_str)
+
+    return module_info
+
+def _get_name_from_node(node) -> str:
+    """Helper to extract name from AST node."""
+    if isinstance(node, ast.Name):
+        return node.id
+    elif isinstance(node, ast.Attribute):
+        return f"{_get_name_from_node(node.value)}.{node.attr}"
+    elif isinstance(node, ast.Constant):
+        return str(node.value)
+    else:
+        return str(node)
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\parser\dependency_parser.py
+import ast
+import re
+from pathlib import Path
+from typing import List, Dict, Any
+
+def parse_dependencies(project_path: str) -> List[str]:
+    """
+    Extract dependencies from multiple sources:
+    - pyproject.toml (PEP 621 and Poetry)
+    - setup.py (install_requires)
+    - setup.cfg (options.install_requires)  
+    - requirements.txt files (and variants)
+    - Pipfile (pipenv)
+    - environment.yml (conda)
+    """
+    project_path = Path(project_path).resolve()
+    dependencies = []
+    
+    # Try each source in order of preference
+    deps_sources = [
+        _parse_pyproject_dependencies,
+        _parse_setup_py_dependencies,
+        _parse_setup_cfg_dependencies,
+        _parse_requirements_files,
+        _parse_pipfile_dependencies,
+        _parse_conda_dependencies,
+    ]
+    
+    for parse_func in deps_sources:
+        deps = parse_func(project_path)
+        if deps:
+            dependencies.extend(deps)
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_deps = []
+    for dep in dependencies:
+        if dep not in seen:
+            seen.add(dep)
+            unique_deps.append(dep)
+    
+    return unique_deps
+
+def _parse_pyproject_dependencies(project_path: Path) -> List[str]:
+    """Parse dependencies from pyproject.toml (PEP 621 and Poetry)."""
+    pyproject = project_path / "pyproject.toml"
+    if not pyproject.exists():
+        return []
+    
+    try:
+        import tomllib
+    except ImportError:
+        try:
+            import tomli as tomllib
+        except ImportError:
+            return []
+    
+    try:
+        with open(pyproject, "rb") as f:
+            data = tomllib.load(f)
+        
+        dependencies = []
+        
+        # PEP 621 project dependencies
+        project = data.get("project", {})
+        if "dependencies" in project:
+            dependencies.extend(project["dependencies"])
+        
+        # Optional dependencies
+        if "optional-dependencies" in project:
+            for group_deps in project["optional-dependencies"].values():
+                dependencies.extend(group_deps)
+        
+        # Poetry dependencies
+        poetry = data.get("tool", {}).get("poetry", {})
+        if "dependencies" in poetry:
+            poetry_deps = poetry["dependencies"]
+            for name, spec in poetry_deps.items():
+                if name != "python":  # Skip Python version
+                    if isinstance(spec, str):
+                        dependencies.append(f"{name}{spec}")
+                    elif isinstance(spec, dict) and "version" in spec:
+                        dependencies.append(f"{name}{spec['version']}")
+                    else:
+                        dependencies.append(name)
+        
+        if "dev-dependencies" in poetry:
+            dev_deps = poetry["dev-dependencies"]
+            for name, spec in dev_deps.items():
+                if isinstance(spec, str):
+                    dependencies.append(f"{name}{spec}")
+                elif isinstance(spec, dict) and "version" in spec:
+                    dependencies.append(f"{name}{spec['version']}")
+                else:
+                    dependencies.append(name)
+        
+        return dependencies
+        
+    except Exception:
+        return []
+
+def _parse_setup_py_dependencies(project_path: Path) -> List[str]:
+    """Parse dependencies from setup.py."""
+    setup_py = project_path / "setup.py"
+    if not setup_py.exists():
+        return []
+    
+    try:
+        with open(setup_py, "r", encoding="utf-8") as f:
+            content = f.read()
+        
+        try:
+            tree = ast.parse(content)
+            return _extract_setup_dependencies_ast(tree)
+        except:
+            return _extract_setup_dependencies_regex(content)
+            
+    except Exception:
+        return []
+
+def _extract_setup_dependencies_ast(tree: ast.AST) -> List[str]:
+    """Extract dependencies from setup() call using AST."""
+    dependencies = []
+    
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Call) 
+            and getattr(node.func, "id", "") == "setup"):
+            
+            for kw in node.keywords:
+                if kw.arg in ("install_requires", "requires"):
+                    if isinstance(kw.value, (ast.List, ast.Tuple)):
+                        for elt in kw.value.elts:
+                            if isinstance(elt, ast.Constant):
+                                dependencies.append(elt.value)
+                            elif isinstance(elt, ast.Str):  # Python < 3.8
+                                dependencies.append(elt.s)
+    
+    return dependencies
+
+def _extract_setup_dependencies_regex(content: str) -> List[str]:
+    """Extract dependencies using regex patterns."""
+    dependencies = []
+    
+    # Look for install_requires
+    install_requires_pattern = r'install_requires\s*=\s*\[(.*?)\]'
+    match = re.search(install_requires_pattern, content, re.DOTALL)
+    if match:
+        deps_str = match.group(1)
+        # Extract quoted strings
+        dep_pattern = r'["\']([^"\']+)["\']'
+        dependencies.extend(re.findall(dep_pattern, deps_str))
+    
+    return dependencies
+
+def _parse_setup_cfg_dependencies(project_path: Path) -> List[str]:
+    """Parse dependencies from setup.cfg."""
+    setup_cfg = project_path / "setup.cfg"
+    if not setup_cfg.exists():
+        return []
+    
+    try:
+        import configparser
+        config = configparser.ConfigParser()
+        config.read(setup_cfg)
+        
+        dependencies = []
+        if 'options' in config and 'install_requires' in config['options']:
+            deps_str = config['options']['install_requires']
+            # Split by newlines and clean up
+            deps = [dep.strip() for dep in deps_str.split('\n') if dep.strip()]
+            dependencies.extend(deps)
+        
+        return dependencies
+    except Exception:
+        return []
+
+def _parse_requirements_files(project_path: Path) -> List[str]:
+    """Parse dependencies from requirements files."""
+    dependencies = []
+    
+    # Common requirements file patterns
+    req_patterns = [
+        "requirements.txt",
+        "requirements*.txt", 
+        "reqs.txt",
+        "deps.txt",
+        "dependencies.txt",
+        "dev-requirements.txt",
+        "test-requirements.txt"
+    ]
+    
+    req_files = []
+    for pattern in req_patterns:
+        req_files.extend(list(project_path.glob(pattern)))
+        req_files.extend(list(project_path.glob(f"**/{pattern}")))
+    
+    for req_file in req_files:
+        if req_file.is_file():
+            try:
+                with open(req_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        # Skip empty lines and comments
+                        if line and not line.startswith('#') and not line.startswith('-'):
+                            # Remove inline comments
+                            dep = line.split('#')[0].strip()
+                            if dep:
+                                dependencies.append(dep)
+            except Exception:
+                continue
+    
+    return dependencies
+
+def _parse_pipfile_dependencies(project_path: Path) -> List[str]:
+    """Parse dependencies from Pipfile."""
+    pipfile = project_path / "Pipfile"
+    if not pipfile.exists():
+        return []
+    
+    try:
+        import tomllib
+    except ImportError:
+        try:
+            import tomli as tomllib
+        except ImportError:
+            return []
+    
+    try:
+        with open(pipfile, "rb") as f:
+            data = tomllib.load(f)
+        
+        dependencies = []
+        
+        # Regular packages
+        if "packages" in data:
+            for name, spec in data["packages"].items():
+                if isinstance(spec, str):
+                    dependencies.append(f"{name}{spec}")
+                else:
+                    dependencies.append(name)
+        
+        # Dev packages
+        if "dev-packages" in data:
+            for name, spec in data["dev-packages"].items():
+                if isinstance(spec, str):
+                    dependencies.append(f"{name}{spec}")
+                else:
+                    dependencies.append(name)
+        
+        return dependencies
+        
+    except Exception:
+        return []
+
+def _parse_conda_dependencies(project_path: Path) -> List[str]:
+    """Parse dependencies from conda environment files."""
+    dependencies = []
+    
+    env_files = list(project_path.glob("environment*.yml")) + list(project_path.glob("environment*.yaml"))
+    
+    for env_file in env_files:
+        try:
+            with open(env_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Simple parsing for dependencies section
+            in_deps = False
+            for line in content.split('\n'):
+                line = line.strip()
+                if line == "dependencies:":
+                    in_deps = True
+                    continue
+                elif in_deps:
+                    if line.startswith('- ') and not line.startswith('- pip:'):
+                        dep = line[2:].strip()
+                        if dep:
+                            dependencies.append(dep)
+                    elif not line.startswith(' ') and not line.startswith('-'):
+                        in_deps = False
+        except Exception:
+            continue
+    
+    return dependencies
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\parser\entry_point_parser.py
+"""
+Parser for identifying and extracting entry points and main scripts.
+These are crucial for generating usage instructions in READMEs.
+"""
+
+import ast
+import os
+from pathlib import Path
+from typing import List, Dict, Any
+
+def parse_entry_points(project_path: str) -> Dict[str, Any]:
+    """
+    Identify and extract entry points including CLI scripts, main modules, and setup.py scripts.
+    """
+    project_path = Path(project_path).resolve()
+    
+    entry_points = {
+        "main_modules": [],
+        "cli_scripts": [],
+        "setup_scripts": [],
+        "package_entry_points": []
+    }
+    
+    # Find main modules (__main__.py files)
+    main_files = list(project_path.glob("**/__main__.py"))
+    for main_file in main_files:
+        entry_info = _extract_main_module_info(main_file)
+        if entry_info:
+            entry_points["main_modules"].append(entry_info)
+    
+    # Find CLI scripts (common patterns)
+    cli_patterns = ["cli.py", "main.py", "*_cli.py", "run.py", "app.py"]
+    for pattern in cli_patterns:
+        cli_files = list(project_path.glob(f"**/{pattern}"))
+        for cli_file in cli_files:
+            # Skip if already found as __main__.py
+            if cli_file.name == "__main__.py":
+                continue
+            entry_info = _extract_cli_script_info(cli_file)
+            if entry_info:
+                entry_points["cli_scripts"].append(entry_info)
+    
+    # Extract setup.py console scripts and entry points
+    setup_py = project_path / "setup.py"
+    if setup_py.exists():
+        setup_entry_points = _extract_setup_entry_points(setup_py)
+        entry_points["setup_scripts"].extend(setup_entry_points)
+    
+    # Extract pyproject.toml entry points
+    pyproject_toml = project_path / "pyproject.toml"
+    if pyproject_toml.exists():
+        pyproject_entry_points = _extract_pyproject_entry_points(pyproject_toml)
+        entry_points["package_entry_points"].extend(pyproject_entry_points)
+    
+    return entry_points
+
+def _extract_main_module_info(main_file: Path) -> Dict[str, Any]:
+    """Extract information from __main__.py files."""
+    try:
+        with open(main_file, 'r', encoding='utf-8') as f:
+            source = f.read()
+        
+        return {
+            "type": "main_module",
+            "file": str(main_file),
+            "usage": f"python -m {_get_package_name_from_main(main_file)}",
+            "source_code": source,
+            "docstring": _extract_module_docstring(source),
+            "description": "Main module entry point"
+        }
+    except Exception:
+        return None
+
+def _extract_cli_script_info(cli_file: Path) -> Dict[str, Any]:
+    """Extract information from CLI script files."""
+    try:
+        with open(cli_file, 'r', encoding='utf-8') as f:
+            source = f.read()
+        
+        # Check if this looks like a CLI script
+        if not _is_cli_script(source):
+            return None
+        
+        return {
+            "type": "cli_script",
+            "file": str(cli_file),
+            "usage": f"python {cli_file.name}",
+            "source_code": source,
+            "docstring": _extract_module_docstring(source),
+            "description": "Command-line interface script",
+            "argument_parser": _extract_argument_parser_info(source)
+        }
+    except Exception:
+        return None
+
+def _extract_setup_entry_points(setup_file: Path) -> List[Dict[str, Any]]:
+    """Extract console scripts and entry points from setup.py."""
+    entry_points = []
+    
+    try:
+        with open(setup_file, 'r', encoding='utf-8') as f:
+            source = f.read()
+        
+        tree = ast.parse(source)
+        
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Call) and 
+                getattr(node.func, "id", "") == "setup"):
+                
+                for kw in node.keywords:
+                    if kw.arg == "entry_points":
+                        # Extract entry points
+                        entry_points.extend(_parse_entry_points_dict(kw.value))
+                    elif kw.arg == "scripts":
+                        # Extract script files
+                        entry_points.extend(_parse_scripts_list(kw.value))
+    except Exception:
+        pass
+    
+    return entry_points
+
+def _extract_pyproject_entry_points(pyproject_file: Path) -> List[Dict[str, Any]]:
+    """Extract entry points from pyproject.toml."""
+    entry_points = []
+    
+    try:
+        import tomllib
+    except ImportError:
+        try:
+            import tomli as tomllib
+        except ImportError:
+            return entry_points
+    
+    try:
+        with open(pyproject_file, "rb") as f:
+            data = tomllib.load(f)
+        
+        # Check project.scripts
+        project = data.get("project", {})
+        if "scripts" in project:
+            for script_name, entry_point in project["scripts"].items():
+                entry_points.append({
+                    "type": "console_script",
+                    "name": script_name,
+                    "entry_point": entry_point,
+                    "usage": script_name,
+                    "description": f"Console script: {script_name}"
+                })
+        
+        # Check project.entry-points
+        if "entry-points" in project:
+            for group, entries in project["entry-points"].items():
+                for name, entry_point in entries.items():
+                    entry_points.append({
+                        "type": "entry_point",
+                        "group": group,
+                        "name": name,
+                        "entry_point": entry_point,
+                        "usage": name if group == "console_scripts" else f"{group}:{name}",
+                        "description": f"Entry point: {group}.{name}"
+                    })
+    
+    except Exception:
+        pass
+    
+    return entry_points
+
+def _get_package_name_from_main(main_file: Path) -> str:
+    """Get package name from __main__.py file path."""
+    parts = main_file.parts
+    if "__main__.py" in parts:
+        main_index = parts.index("__main__.py")
+        if main_index > 0:
+            return parts[main_index - 1]
+    return main_file.parent.name
+
+def _extract_module_docstring(source: str) -> str:
+    """Extract module-level docstring."""
+    try:
+        tree = ast.parse(source)
+        return ast.get_docstring(tree) or ""
+    except Exception:
+        return ""
+
+def _is_cli_script(source: str) -> bool:
+    """Check if source code looks like a CLI script."""
+    cli_indicators = [
+        "argparse",
+        "ArgumentParser",
+        "if __name__ == '__main__':",
+        "sys.argv",
+        "click",
+        "@click.command",
+        "typer"
+    ]
+    return any(indicator in source for indicator in cli_indicators)
+
+def _extract_argument_parser_info(source: str) -> Dict[str, Any]:
+    """Extract information about argument parser from CLI script."""
+    try:
+        tree = ast.parse(source)
+        
+        # Look for ArgumentParser creation and argument definitions
+        parser_info = {
+            "program_name": None,
+            "description": None,
+            "arguments": []
+        }
+        
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Call) and
+                isinstance(node.func, ast.Attribute) and
+                node.func.attr == "ArgumentParser"):
+                
+                # Extract ArgumentParser arguments
+                for kw in node.keywords:
+                    if kw.arg == "prog" and isinstance(kw.value, ast.Constant):
+                        parser_info["program_name"] = kw.value.value
+                    elif kw.arg == "description" and isinstance(kw.value, ast.Constant):
+                        parser_info["description"] = kw.value.value
+        
+        return parser_info
+    except Exception:
+        return {}
+
+def _parse_entry_points_dict(node) -> List[Dict[str, Any]]:
+    """Parse entry_points dictionary from setup.py AST node."""
+    # This would need more sophisticated AST parsing
+    # For now, return empty list
+    return []
+
+def _parse_scripts_list(node) -> List[Dict[str, Any]]:
+    """Parse scripts list from setup.py AST node."""
+    scripts = []
+    if isinstance(node, (ast.List, ast.Tuple)):
+        for item in node.elts:
+            if isinstance(item, ast.Constant):
+                scripts.append({
+                    "type": "script_file",
+                    "file": item.value,
+                    "usage": f"python {item.value}",
+                    "description": f"Script file: {item.value}"
+                })
+    return scripts
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\parser\example_parser.py
+import ast
+import re
+from pathlib import Path
+from typing import List, Dict, Any
+
+def parse_examples(file_path: str) -> List[Dict[str, Any]]:
+    """
+    Extract code examples from multiple sources:
+    - Docstring examples (doctest format)
+    - Code blocks in docstrings
+    - Main guard blocks
+    - Function/class usage patterns
+    - Comments with example code
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            source = f.read()
+        tree = ast.parse(source)
+    except Exception:
+        return []
+    
+    examples = []
+    
+    # Extract from docstrings
+    examples.extend(_extract_docstring_examples(tree, file_path, source))
+    
+    # Extract main guard examples
+    examples.extend(_extract_main_guard_examples(tree, file_path, source))
+    
+    # Extract comment examples
+    examples.extend(_extract_comment_examples(source, file_path))
+    
+    # Extract usage patterns
+    examples.extend(_extract_usage_patterns(tree, file_path, source))
+    
+    return examples
+
+def _extract_docstring_examples(tree: ast.AST, file_path: str, source: str) -> List[Dict[str, Any]]:
+    """Extract examples from docstrings (doctests and code blocks)."""
+    examples = []
+    
+    # Module docstring
+    module_docstring = ast.get_docstring(tree)
+    if module_docstring:
+        examples.extend(_parse_docstring_for_examples(module_docstring, file_path, "module"))
+    
+    # Walk through all nodes
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            class_docstring = ast.get_docstring(node)
+            if class_docstring:
+                examples.extend(_parse_docstring_for_examples(
+                    class_docstring, file_path, f"class {node.name}"
+                ))
+        elif isinstance(node, ast.FunctionDef):
+            func_docstring = ast.get_docstring(node)
+            if func_docstring:
+                examples.extend(_parse_docstring_for_examples(
+                    func_docstring, file_path, f"function {node.name}"
+                ))
+    
+    return examples
+
+def _parse_docstring_for_examples(docstring: str, file_path: str, context: str) -> List[Dict[str, Any]]:
+    """Parse a docstring for various types of examples."""
+    examples = []
+    
+    if not docstring:
+        return examples
+    
+    # 1. Doctest examples (>>> format)
+    doctest_examples = _extract_doctest_examples(docstring)
+    for example in doctest_examples:
+        examples.append({
+            "file": file_path,
+            "context": context,
+            "type": "doctest",
+            "code": example,
+            "language": "python"
+        })
+    
+    # 2. Code blocks (markdown style)
+    code_blocks = _extract_code_blocks(docstring)
+    for block in code_blocks:
+        examples.append({
+            "file": file_path,
+            "context": context,
+            "type": "code_block",
+            "code": block["code"],
+            "language": block.get("language", "python")
+        })
+    
+    # 3. Example sections
+    example_sections = _extract_example_sections(docstring)
+    for section in example_sections:
+        examples.append({
+            "file": file_path,
+            "context": context,
+            "type": "example_section",
+            "code": section,
+            "language": "python"
+        })
+    
+    return examples
+
+def _extract_doctest_examples(docstring: str) -> List[str]:
+    """Extract doctest-style examples (>>> format)."""
+    examples = []
+    current_example = []
+    
+    for line in docstring.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(">>>"):
+            current_example.append(stripped)
+        elif stripped.startswith("...") and current_example:
+            current_example.append(stripped)
+        elif current_example and not stripped:
+            # Empty line, might be end of example
+            continue
+        elif current_example:
+            # Non-continuation line, end current example
+            examples.append('\n'.join(current_example))
+            current_example = []
+    
+    # Don't forget the last example
+    if current_example:
+        examples.append('\n'.join(current_example))
+    
+    return examples
+
+def _extract_code_blocks(docstring: str) -> List[Dict[str, Any]]:
+    """Extract code blocks from markdown-style formatting."""
+    blocks = []
+    
+    # Pattern for fenced code blocks
+    fenced_pattern = r'``````'
+    matches = re.findall(fenced_pattern, docstring, re.DOTALL)
+    
+    for language, code in matches:
+        blocks.append({
+            "code": code.strip(),
+            "language": language or "python"
+        })
+    
+    # Pattern for indented code blocks (following "Example:" or similar)
+    example_pattern = r'(?:Example|Usage|Code):\s*\n((?:    .*\n?)+)'
+    matches = re.findall(example_pattern, docstring, re.MULTILINE)
+    
+    for match in matches:
+        # Remove common indentation
+        lines = match.split('\n')
+        if lines:
+            # Find minimum indentation
+            min_indent = min(len(line) - len(line.lstrip()) 
+                           for line in lines if line.strip())
+            # Remove common indentation
+            code_lines = [line[min_indent:] if len(line) >= min_indent else line 
+                         for line in lines]
+            code = '\n'.join(code_lines).strip()
+            if code:
+                blocks.append({
+                    "code": code,
+                    "language": "python"
+                })
+    
+    return blocks
+
+def _extract_example_sections(docstring: str) -> List[str]:
+    """Extract dedicated example sections."""
+    examples = []
+    
+    # Look for sections starting with "Examples:", "Example:", etc.
+    sections = re.split(r'\n\s*(Examples?|Usage|Sample Code):\s*\n', docstring, flags=re.IGNORECASE)
+    
+    for i in range(1, len(sections), 2):  # Every other section starting from 1
+        if i + 1 < len(sections):
+            example_content = sections[i + 1].split('\n\n')[0]  # Take first paragraph
+            if example_content.strip():
+                examples.append(example_content.strip())
+    
+    return examples
+
+def _extract_main_guard_examples(tree: ast.AST, file_path: str, source: str) -> List[Dict[str, Any]]:
+    """Extract examples from if __name__ == '__main__': blocks."""
+    examples = []
+    
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.If) and 
+            isinstance(node.test, ast.Compare) and
+            isinstance(node.test.left, ast.Name) and
+            node.test.left.id == '__name__'):
+            
+            # Extract the code from the main guard
+            start_line = node.lineno - 1
+            end_line = node.end_lineno if hasattr(node, 'end_lineno') else start_line + 10
+            
+            source_lines = source.split('\n')
+            if start_line < len(source_lines):
+                # Find the actual end of the if block
+                main_guard_lines = []
+                indent_level = None
+                
+                for i in range(start_line, min(end_line, len(source_lines))):
+                    line = source_lines[i]
+                    if indent_level is None and line.strip():
+                        indent_level = len(line) - len(line.lstrip())
+                    
+                    if line.strip():  # Non-empty line
+                        current_indent = len(line) - len(line.lstrip())
+                        if current_indent >= indent_level:
+                            main_guard_lines.append(line)
+                        else:
+                            break
+                    else:
+                        main_guard_lines.append(line)
+                
+                if main_guard_lines:
+                    code = '\n'.join(main_guard_lines)
+                    examples.append({
+                        "file": file_path,
+                        "context": "main guard",
+                        "type": "main_example",
+                        "code": code.strip(),
+                        "language": "python"
+                    })
+    
+    return examples
+
+def _extract_comment_examples(source: str, file_path: str) -> List[Dict[str, Any]]:
+    """Extract examples from comments."""
+    examples = []
+    
+    # Look for comment blocks that contain example code
+    comment_blocks = []
+    current_block = []
+    
+    for line in source.split('\n'):
+        stripped = line.strip()
+        if stripped.startswith('#') and len(stripped) > 1:
+            comment_text = stripped[1:].strip()
+            if comment_text:
+                current_block.append(comment_text)
+        elif current_block:
+            comment_blocks.append('\n'.join(current_block))
+            current_block = []
+    
+    if current_block:
+        comment_blocks.append('\n'.join(current_block))
+    
+    # Look for example patterns in comment blocks
+    for block in comment_blocks:
+        if any(keyword in block.lower() for keyword in ['example', 'usage', 'sample', 'demo']):
+            # Try to extract code-like content
+            code_lines = []
+            for line in block.split('\n'):
+                # Look for lines that look like code
+                if (any(char in line for char in ['=', '(', ')', '.', 'import', 'from', 'def', 'class']) 
+                    and not line.lower().startswith(('example', 'usage', 'sample', 'demo'))):
+                    code_lines.append(line)
+            
+            if code_lines:
+                examples.append({
+                    "file": file_path,
+                    "context": "comment",
+                    "type": "comment_example",
+                    "code": '\n'.join(code_lines),
+                    "language": "python"
+                })
+    
+    return examples
+
+def _extract_usage_patterns(tree: ast.AST, file_path: str, source: str) -> List[Dict[str, Any]]:
+    """Extract common usage patterns from the code itself."""
+    examples = []
+    
+    # Look for class instantiation patterns
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            # Look for assignments that might be examples
+            if (isinstance(node.value, ast.Call) and 
+                isinstance(node.value.func, ast.Name)):
+                
+                # Get the source code for this assignment
+                if hasattr(node, 'lineno'):
+                    line_no = node.lineno - 1
+                    source_lines = source.split('\n')
+                    if line_no < len(source_lines):
+                        line = source_lines[line_no].strip()
+                        if line and not line.startswith(('_', 'self.')):
+                            examples.append({
+                                "file": file_path,
+                                "context": "usage pattern",
+                                "type": "instantiation",
+                                "code": line,
+                                "language": "python"
+                            })
+    
+    return examples
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\parser\metadata_parser.py
+import ast
+import os
+import re
+from pathlib import Path
+from typing import Dict, Any, Optional
+
+def parse_metadata(project_path: str) -> Dict[str, Any]:
+    """
+    Extract project metadata from multiple sources:
+    - pyproject.toml
+    - setup.py  
+    - setup.cfg
+    - __init__.py files
+    - README files
+    - Project directory structure
+    """
+    project_path = Path(project_path).resolve()
+    metadata = {}
+    
+    # Try pyproject.toml first (most modern)
+    metadata.update(_parse_pyproject_toml(project_path))
+    
+    # Try setup.py (traditional)
+    if not metadata:
+        metadata.update(_parse_setup_py(project_path))
+    
+    # Try setup.cfg (setuptools)
+    if not metadata:
+        metadata.update(_parse_setup_cfg(project_path))
+    
+    # Extract from __init__.py files
+    init_metadata = _parse_init_files(project_path)
+    for key, value in init_metadata.items():
+        if not metadata.get(key):
+            metadata[key] = value
+    
+    # Extract from README
+    readme_metadata = _parse_readme(project_path)
+    for key, value in readme_metadata.items():
+        if not metadata.get(key):
+            metadata[key] = value
+    
+    # Infer from directory structure if still missing
+    if not metadata.get('name'):
+        metadata['name'] = project_path.name
+    
+    return metadata
+
+def _parse_pyproject_toml(project_path: Path) -> Dict[str, Any]:
+    """Parse pyproject.toml for project metadata."""
+    pyproject = project_path / "pyproject.toml"
+    if not pyproject.exists():
+        return {}
+    
+    try:
+        import tomllib
+    except ImportError:
+        try:
+            import tomli as tomllib
+        except ImportError:
+            return {}
+    
+    try:
+        with open(pyproject, "rb") as f:
+            data = tomllib.load(f)
+        
+        project = data.get("project", {})
+        metadata = {}
+        
+        # Standard PEP 621 fields
+        for field in ["name", "version", "description", "readme", "license"]:
+            if field in project:
+                metadata[field] = project[field]
+        
+        # Authors
+        if "authors" in project:
+            authors = project["authors"]
+            if isinstance(authors, list) and authors:
+                metadata["author"] = authors[0].get("name", "")
+                metadata["author_email"] = authors[0].get("email", "")
+        
+        # URLs
+        if "urls" in project:
+            urls = project["urls"]
+            metadata["homepage"] = urls.get("homepage", urls.get("Home", ""))
+            metadata["repository"] = urls.get("repository", urls.get("Repository", ""))
+        
+        return metadata
+        
+    except Exception:
+        return {}
+
+def _parse_setup_py(project_path: Path) -> Dict[str, Any]:
+    """Parse setup.py for project metadata."""
+    setup_py = project_path / "setup.py"
+    if not setup_py.exists():
+        return {}
+    
+    try:
+        with open(setup_py, "r", encoding="utf-8") as f:
+            content = f.read()
+        
+        # Try to parse as AST first
+        try:
+            tree = ast.parse(content)
+            return _extract_setup_call_metadata(tree)
+        except:
+            # Fallback to regex parsing
+            return _extract_setup_regex_metadata(content)
+            
+    except Exception:
+        return {}
+
+def _extract_setup_call_metadata(tree: ast.AST) -> Dict[str, Any]:
+    """Extract metadata from setup() call in AST."""
+    metadata = {}
+    
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Call) 
+            and getattr(node.func, "id", "") == "setup"):
+            
+            for kw in node.keywords:
+                if kw.arg in ("name", "version", "description", "author", 
+                             "author_email", "url", "license"):
+                    if isinstance(kw.value, ast.Constant):
+                        metadata[kw.arg] = kw.value.value
+                    elif isinstance(kw.value, ast.Str):  # Python < 3.8
+                        metadata[kw.arg] = kw.value.s
+    
+    return metadata
+
+def _extract_setup_regex_metadata(content: str) -> Dict[str, Any]:
+    """Extract metadata using regex patterns."""
+    metadata = {}
+    
+    patterns = {
+        'name': r'name\s*=\s*["\']([^"\']+)["\']',
+        'version': r'version\s*=\s*["\']([^"\']+)["\']',
+        'description': r'description\s*=\s*["\']([^"\']+)["\']',
+        'author': r'author\s*=\s*["\']([^"\']+)["\']',
+        'author_email': r'author_email\s*=\s*["\']([^"\']+)["\']',
+        'url': r'url\s*=\s*["\']([^"\']+)["\']',
+    }
+    
+    for key, pattern in patterns.items():
+        match = re.search(pattern, content, re.MULTILINE)
+        if match:
+            metadata[key] = match.group(1)
+    
+    return metadata
+
+def _parse_setup_cfg(project_path: Path) -> Dict[str, Any]:
+    """Parse setup.cfg for project metadata."""
+    setup_cfg = project_path / "setup.cfg"
+    if not setup_cfg.exists():
+        return {}
+    
+    try:
+        import configparser
+        config = configparser.ConfigParser()
+        config.read(setup_cfg)
+        
+        metadata = {}
+        if 'metadata' in config:
+            section = config['metadata']
+            for key in ('name', 'version', 'description', 'author', 'author_email', 'url'):
+                if key in section:
+                    metadata[key] = section[key]
+        
+        return metadata
+    except Exception:
+        return {}
+
+def _parse_init_files(project_path: Path) -> Dict[str, Any]:
+    """Extract metadata from __init__.py files."""
+    metadata = {}
+    
+    # Look for __init__.py files
+    init_files = list(project_path.glob("**/__init__.py"))
+    
+    for init_file in init_files:
+        try:
+            with open(init_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Look for common metadata variables
+            patterns = {
+                'version': r'__version__\s*=\s*["\']([^"\']+)["\']',
+                'author': r'__author__\s*=\s*["\']([^"\']+)["\']',
+                'description': r'__description__\s*=\s*["\']([^"\']+)["\']',
+                'email': r'__email__\s*=\s*["\']([^"\']+)["\']',
+            }
+            
+            for key, pattern in patterns.items():
+                if not metadata.get(key):
+                    match = re.search(pattern, content)
+                    if match:
+                        metadata[key] = match.group(1)
+        except Exception:
+            continue
+    
+    return metadata
+
+def _parse_readme(project_path: Path) -> Dict[str, Any]:
+    """Extract metadata from README files."""
+    metadata = {}
+    
+    # Look for README files
+    readme_patterns = ["README*", "readme*", "Readme*"]
+    readme_files = []
+    
+    for pattern in readme_patterns:
+        readme_files.extend(list(project_path.glob(pattern)))
+    
+    for readme_file in readme_files:
+        if readme_file.is_file():
+            try:
+                with open(readme_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Extract title from first heading
+                if not metadata.get('description'):
+                    title_match = re.search(r'^#\s*(.+)$', content, re.MULTILINE)
+                    if title_match:
+                        metadata['description'] = title_match.group(1).strip()
+                
+                break
+            except Exception:
+                continue
+    
+    return metadata
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\parser\project_parser.py
+from pathlib import Path
+from typing import Any, Dict, List
+from .metadata_parser import parse_metadata
+from .dependency_parser import parse_dependencies
+from .structure_parser import parse_structure
+from .example_parser import parse_examples
+from .code_parser import parse_code_file
+from .entry_point_parser import parse_entry_points
+
+def parse_project(
+    project_path: str,
+    include_tests: bool = False,
+    include_private: bool = False
+) -> Dict[str, Any]:
+    """
+    Orchestrate comprehensive parsing of Python project including entry points.
+    """
+    project_path = Path(project_path).resolve()
+
+    # Parse project-level information
+    metadata = parse_metadata(str(project_path))
+    dependencies = parse_dependencies(str(project_path))
+    entry_points = parse_entry_points(str(project_path))
+    
+    # Get basic file structure
+    structure = parse_structure(str(project_path))
+
+    # Filter test files if requested
+    if not include_tests:
+        structure = [
+            mod for mod in structure
+            if all('test' not in part.lower() for part in Path(mod["file"]).parts)
+        ]
+
+    # Parse detailed code information for each module
+    detailed_modules = []
+    all_examples = []
+    
+    # Determine which files are entry points (should include full source)
+    entry_point_files = set()
+    for ep_category in entry_points.values():
+        if isinstance(ep_category, list):
+            for ep in ep_category:
+                if 'file' in ep:
+                    entry_point_files.add(ep['file'])
+    
+    for module_basic in structure:
+        file_path = module_basic["file"]
+        
+        # Extract full code for entry points
+        is_entry_point = file_path in entry_point_files or _is_likely_entry_point(file_path)
+        
+        # Get detailed code information
+        code_details = parse_code_file(file_path, extract_full_code=is_entry_point)
+        
+        if code_details:
+            detailed_modules.append(code_details)
+        else:
+            detailed_modules.append(module_basic)
+        
+        # Extract examples from this file
+        file_examples = parse_examples(file_path)
+        all_examples.extend(file_examples)
+
+    # Calculate comprehensive stats
+    total_classes = sum(len(mod.get("classes", [])) for mod in detailed_modules)
+    total_functions = sum(len(mod.get("functions", [])) for mod in detailed_modules)
+    total_methods = sum(
+        sum(len(cls.get("methods", [])) for cls in mod.get("classes", []))
+        for mod in detailed_modules
+    )
+
+    return {
+        "success": True,
+        "project_metadata": metadata,
+        "dependencies": dependencies,
+        "entry_points": entry_points,  # New: Entry point information
+        "modules": detailed_modules,
+        "examples": all_examples,
+        "stats": {
+            "files_processed": len(detailed_modules),
+            "examples_found": len(all_examples),
+            "classes_found": total_classes,
+            "functions_found": total_functions,
+            "methods_found": total_methods,
+            "entry_points_found": sum(len(eps) if isinstance(eps, list) else 0 for eps in entry_points.values()),
+        }
+    }
+
+def _is_likely_entry_point(file_path: str) -> bool:
+    """Check if a file is likely an entry point based on naming patterns."""
+    file_name = Path(file_path).name
+    entry_patterns = [
+        "main.py", "cli.py", "__main__.py", "run.py", "app.py", 
+        "start.py", "launch.py", "execute.py"
+    ]
+    return any(file_name == pattern or file_name.endswith(f"_{pattern}") for pattern in entry_patterns)
+
+# Test harness
+if __name__ == "__main__":
+    import sys
+    import json
+    project_root = sys.argv[1] if len(sys.argv) > 1 else "."
+    result = parse_project(project_root)
+    print(json.dumps(result, indent=2))
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\parser\structure_parser.py
+import os
+from pathlib import Path
+
+def parse_structure(project_path):
+    """
+    Traverse project directory and find all Python (.py) files,
+    returning a list of dicts with keys: 'file' (full path) and 'name' (module name).
+    Ignores folders named __pycache__, venv, build, dist, tests, docs.
+    """
+    project_path = Path(project_path).resolve()
+    ignored_dirs = {"__pycache__", "venv", "build", "dist", "tests", "docs"}
+
+    modules = []
+
+    for root, dirs, files in os.walk(project_path):
+        # Filter ignored dirs to avoid descending into them
+        dirs[:] = [d for d in dirs if d not in ignored_dirs]
+
+        for file in files:
+            if file.endswith(".py"):
+                full_path = Path(root) / file
+                modules.append({
+                    "file": str(full_path.resolve()),
+                    "name": full_path.stem
+                })
+
+    return modules
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\parser\__init__.py
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\utils\content_prioritizer.py
+from .token_counter import estimate_tokens
+from .token_counter import estimate_tokens
+from .token_counter import estimate_tokens
+from .token_counter import estimate_tokens
+def filter_content_under_token_limit(items, max_tokens):
+    """Yield as many items as fit under max_tokens (approx)."""
+    total = 0
+    for item in items:
+        tc = estimate_tokens(str(item))
+        if total + tc > max_tokens:
+            break
+        total += tc
+        yield item
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\utils\file_utils.py
+"""
+File system utilities for safe and efficient file operations.
+
+This module provides functions for reading files, detecting encodings,
+and basic directory traversal for Python projects.
+"""
+
+import os
+import mimetypes
+from pathlib import Path
+from typing import Optional, Generator
+import logging
+
+logger = logging.getLogger(__name__)
+
+IGNORE_FOLDERS = {'.git', 'venv', 'env', '__pycache__', 'build', 'dist', '.tox'}
+PYTHON_EXTENSIONS = {'.py', '.pyw', '.pyx', '.pyi'}
+TEXT_EXTENSIONS = {
+    '.txt', '.md', '.rst', '.yaml', '.yml', '.json', '.xml', '.cfg',
+    '.ini', '.toml', '.conf', '.env'
+}
+
+def read_file_safely(file_path: str, max_size: int = 10 * 1024 * 1024) -> Optional[str]:
+    """Reads file contents if file size is below max_size."""
+    try:
+        p = Path(file_path)
+        if not p.is_file():
+            logger.debug(f"Not a file: {file_path}")
+            return None
+        if p.stat().st_size > max_size:
+            logger.warning(f"File too large to read: {file_path}")
+            return None
+        return p.read_text(encoding='utf-8', errors='ignore')
+    except Exception as e:
+        logger.error(f"Failed to read file {file_path}: {e}")
+        return None
+
+def create_directory(path: str) -> bool:
+    """Create directory if it doesn't exist."""
+    try:
+        Path(path).mkdir(parents=True, exist_ok=True)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to create directory {path}: {e}")
+        return False
+
+def find_python_files(project_path: str, include_tests: bool = False) -> Generator[str, None, None]:
+    """Yield all Python file paths in project, optionally skipping test folders."""
+    root_path = Path(project_path)
+    if not root_path.exists():
+        logger.warning(f"Project path not found: {project_path}")
+        return
+    for root, dirs, files in os.walk(project_path):
+        # Filter out ignored folders
+        dirs[:] = [d for d in dirs if d not in IGNORE_FOLDERS]
+        if not include_tests:
+            # Optionally skip any test folder
+            dirs[:] = [d for d in dirs if 'test' not in d.lower()]
+        for file in files:
+            if file.endswith('.py'):
+                yield str(Path(root) / file)
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\utils\json_serializer.py
+"""
+JSON serialization utilities for project data output.
+
+This module provides functions to serialize Python dict/list project data
+to JSON files with proper formatting and error handling.
+"""
+
+import json
+from typing import Any, Dict, Optional
+from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
+
+def serialize_project_data(data: Any) -> Any:
+    """
+    Serialize project data; mono pass-through for MVP.
+    This can be extended if richer processing is required.
+    """
+    return data
+
+def format_json_output(data: Any, indent: int = 2) -> str:
+    """
+    Format data as pretty JSON string.
+    """
+    try:
+        return json.dumps(data, indent=indent, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"Failed to format JSON output: {e}")
+        return "{}"
+
+def save_json_to_file(data: Any, file_path: str, indent: int = 2) -> bool:
+    """
+    Save data as JSON to the given filepath.
+    Returns True on success, False on failure.
+    """
+    try:
+        output_path = Path(file_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        json_text = format_json_output(data, indent=indent)
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(json_text)
+        logger.info(f"Saved JSON data to {file_path}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save JSON to {file_path}: {e}")
+        return False
+
+def load_json_from_file(file_path: str) -> Optional[Dict]:
+    """
+    Load and parse JSON file to dict.
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to load JSON from {file_path}: {e}")
+        return None
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\utils\token_counter.py
+"""
+Token counting and estimation utilities for LLM context budgets.
+
+This module provides rough token estimates for strings,
+appropriate for planning LLM prompt sizes.
+"""
+
+import json
+import logging
+
+logger = logging.getLogger(__name__)
+
+def estimate_tokens(text: str) -> int:
+    """
+    Rough token estimate based on character count (~4 chars per token).
+    """
+    if not text:
+        return 0
+    # Basic heuristic: one token per 4 characters roughly
+    return max(1, len(text) // 4)
+
+def count_tokens_in_dict(data: dict) -> int:
+    """
+    Estimate tokens in a dict by JSON serialization length.
+    """
+    try:
+        text = json.dumps(data, ensure_ascii=False)
+        return estimate_tokens(text)
+    except Exception as e:
+        logger.error(f"Error estimating tokens in dict: {e}")
+        return 0
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src\utils\__init__.py
+from .file_utils import (
+    read_file_safely,
+    create_directory,
+    find_python_files
+)
+
+from .json_serializer import (
+    serialize_project_data,
+    save_json_to_file,
+    load_json_from_file,
+    format_json_output
+)
+
+from .token_counter import (
+    estimate_tokens,
+    count_tokens_in_dict,
+)
+
+__all__ = [
+    "read_file_safely",
+    "create_directory",
+    "find_python_files",
+    "serialize_project_data",
+    "save_json_to_file",
+    "load_json_from_file",
+    "format_json_output",
+    "estimate_tokens",
+    "count_tokens_in_dict",
+]
+
+
