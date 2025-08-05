@@ -1,332 +1,362 @@
-# sample-project v1.2.3
+# Sample Project
 
-
+[
+![PyPI Version](https://img.shields.io/pypi/v/sample-project/1.2.3.svg)
+](https://pypi.org/project/sample-project/)
+[
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-
-
-![Python Version](https://img.shields.io/badge/python-3.7+-blue.svg)
-
-
-![Version](https://img.shields.io/badge/version-1.2.3-blue.svg)
-
+](https://opensource.org/licenses/MIT)
+[
+![GitHub Actions CI](https://github.com/example/sample-project/actions/workflows/ci.yml/badge.svg)
+](https://github.com/example/sample-project/actions)
 
 A comprehensive sample Python project for testing README generation.
 
-This package provides a robust framework for data processing, featuring a powerful command-line interface, a flexible configuration system, and a well-defined data model structure. It is designed to be extensible and suitable for various data-centric tasks.
+## Overview
 
----
+`sample-project` is a robust Python library that demonstrates a wide array of best practices for modern Python development. It provides a configurable data processing pipeline, a feature-rich command-line interface, and an extensible plugin architecture. The project is designed to handle various data processing tasks, from simple string manipulation to complex structured data transformations, all managed through a clean and well-defined API.
 
-## Table of Contents
+## Detailed Description
 
-- [sample-project v1.2.3](#sample-project-v123)
-  - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-  - [Installation](#installation)
-    - [From PyPI](#from-pypi)
-    - [For Development](#for-development)
-  - [Usage](#usage)
-    - [Command-Line Interface (CLI)](#command-line-interface-cli)
-      - [Process Data](#process-data)
-      - [Batch Processing](#batch-processing)
-      - [Manage Configuration](#manage-configuration)
-      - [View Statistics](#view-statistics)
-      - [Interactive Mode](#interactive-mode)
-    - [As a Python Library](#as-a-python-library)
-  - [Project Structure](#project-structure)
-  - [API Documentation](#api-documentation)
-    - [Core Classes](#core-classes)
-      - [`main.SampleProcessor`](#mainsampleprocessor)
-      - [`config.Config`](#configconfig)
-      - [`models.DataModel`](#modelsdatamodel)
-      - [`models.ResultModel`](#modelsresultmodel)
-  - [Dependencies](#dependencies)
-      - [Core Dependencies](#core-dependencies)
-      - [Development \& Testing Dependencies](#development--testing-dependencies)
-  - [Contributing](#contributing)
-  - [License](#license)
-  - [Contact](#contact)
+This package serves as a reference implementation, showcasing key software engineering patterns and structures within the Python ecosystem. The core of the project is a flexible processing engine that can be configured and extended to suit different needs.
 
----
-
-## Features
-
-*   **Powerful CLI**: A modern command-line interface built with `Typer` and `Rich` for a great user experience, including beautiful output, progress bars, and table formatting.
-*   **Comprehensive Data Processing**: Includes processors for handling single data items, batch processing from files, and both synchronous and asynchronous operations.
-*   **Flexible Configuration**: Manage application settings through configuration files (`.json`, `.yaml`) or environment variables. Includes commands to create, show, and validate configurations.
-*   **Extensible Data Models**: Utilizes Pydantic-style data models for robust data validation, serialization, and clear schema definition.
-*   **Plugin Architecture**: Supports custom plugins via entry points for extending functionality.
-*   **Utility Toolkit**: A rich set of utility functions and decorators for caching, retries, performance monitoring, and data validation.
-
----
+Key features include:
+*   **Core Business Logic**: The `main` module contains the primary data processors (`SampleProcessor`, `DataProcessor`) and core algorithms for handling synchronous and asynchronous workflows.
+*   **Configuration Management**: A dedicated `config` module provides comprehensive configuration handling from files, environment variables, and runtime settings using dataclasses.
+*   **Data Modeling**: The `models` module defines the core data structures (`DataModel`, `ResultModel`, etc.) with built-in validation, serialization, and utility methods.
+*   **Command-Line Interface**: A powerful CLI built with Typer and Rich allows users to interact with all major features of the project, including data processing, configuration management, and statistics reporting.
+*   **Utilities and Decorators**: A `utils` module offers a collection of helper functions and decorators for caching, retries, performance monitoring, and data validation.
 
 ## Installation
 
-### From PyPI
-
-You can install the project directly from PyPI:
+You can install `sample-project` directly from PyPI:
 
 ```bash
 pip install sample-project
 ```
 
-### For Development
-
-To install the project for development, clone the repository and install it in editable mode with development dependencies:
+Alternatively, to install the latest version from the source repository:
 
 ```bash
-git clone https://github.com/example/sample-project.git
-cd sample-project
-pip install -e .[dev]
+pip install git+https://github.com/example/sample-project.git
 ```
 
----
+### Dependencies
+
+The project relies on a number of external libraries, which will be automatically installed:
+
+<details>
+<summary>Click to view all dependencies</summary>
+
+*   `aiohttp>=3.8.0`
+*   `alembic>=1.8.0,<2.0.0`
+*   `alive-progress>=2.4.0,<4.0.0`
+*   `asyncio-mqtt>=0.11.0`
+*   `backports.zoneinfo>=0.2.0` (for `python_version < "3.9"`)
+*   `bcrypt>=3.2.0,<5.0.0`
+*   `black>=22.0.0`
+*   `cachetools>=5.0.0,<6.0.0`
+*   `click>=8.0.0`
+*   `colorama>=0.4.0,<1.0.0` (for `sys_platform == "win32"`)
+*   `colorlog>=6.0.0,<7.0.0`
+*   `configparser>=5.0.0`
+*   `coverage>=6.0.0`
+*   `croniter>=1.3.0,<2.0.0`
+*   `cryptography>=3.4.0,<42.0.0`
+*   `diskcache>=5.4.0,<6.0.0`
+*   `dnspython>=2.2.0,<3.0.0`
+*   `flake8>=4.0.0`
+*   `fuzzywuzzy>=0.18.0,<1.0.0`
+*   `httpx>=0.24.0,<1.0.0`
+*   `importlib-metadata>=4.0.0` (for `python_version < "3.8"`)
+*   `jinja2>=3.0.0,<4.0.0`
+*   `jsonschema>=4.0.0,<5.0.0`
+*   `lru-dict>=1.1.0,<2.0.0`
+*   `marshmallow>=3.17.0,<4.0.0`
+*   `mypy>=1.0.0`
+*   `myst-parser>=0.18.0`
+*   `numpy>=1.21.0,<2.0.0`
+*   `openpyxl>=3.0.0,<4.0.0`
+*   `pandas>=1.3.0,<3.0.0`
+*   `pathlib2>=2.3.0` (for `python_version < "3.4"`)
+*   `pre-commit>=2.20.0`
+*   `psutil>=5.9.0,<6.0.0`
+*   `pydantic>=1.8.0,<3.0.0`
+*   `pytest>=7.0.0`
+*   `pytest-cov>=4.0.0`
+*   `pytest-mock>=3.10.0`
+*   `python-dateutil>=2.8.0`
+*   `python-dotenv>=0.19.0,<2.0.0`
+*   `python-levenshtein>=0.20.0,<1.0.0`
+*   `pytz>=2022.0,<2024.0`
+*   `pyyaml>=6.0`
+*   `redis>=4.0.0,<5.0.0`
+*   `regex>=2022.0.0,<2024.0.0`
+*   `requests>=2.25.0`
+*   `rich>=10.0.0`
+*   `schedule>=1.2.0,<2.0.0`
+*   `six>=1.16.0,<2.0.0`
+*   `sphinx>=4.0.0`
+*   `sphinx-rtd-theme>=1.0.0`
+*   `sqlalchemy>=1.4.0,<3.0.0`
+*   `structlog>=21.0.0,<24.0.0`
+*   `termcolor>=1.1.0,<3.0.0`
+*   `toml>=0.10.2`
+*   `tomli>=2.0.0` (for `python_version < "3.11"`)
+*   `tomli-w>=1.0.0`
+*   `tqdm>=4.64.0,<5.0.0`
+*   `typer>=0.4.0`
+*   `typing-extensions>=4.0.0` (for `python_version < "3.8"`)
+*   `urllib3>=1.26.0,<3.0.0`
+*   `validators>=0.20.0,<1.0.0`
+*   `watchdog>=2.1.0,<4.0.0`
+*   `xlrd>=2.0.0,<3.0.0`
+
+</details>
 
 ## Usage
 
-The `sample-project` can be used both as a command-line tool and as a Python library in your own applications.
-
 ### Command-Line Interface (CLI)
 
-The project provides a powerful CLI accessible via the `sample-project` command. You can see all available commands by running:
+The project includes a powerful CLI for easy interaction. The main entry points are `sample-project`, `sample-cli`, and `sample-tool`.
+
+Here are the primary commands:
+
+| Command         | Description                                                          |
+| --------------- | -------------------------------------------------------------------- |
+| `version`       | Show version information.                                            |
+| `process`       | Process input data using the specified processor.                    |
+| `batch`         | Process multiple items from a file in batch mode.                    |
+| `config`        | Manage configuration files (show, create, validate).                 |
+| `stats`         | Show or reset processor statistics.                                  |
+| `interactive`   | Start an interactive session (REPL) for data processing.             |
+
+#### CLI Examples
+
+**Process single data items:**
 
 ```bash
-sample-project --help
-```
-
-#### Process Data
-
-Process a single piece of data. The tool can intelligently handle different input types.
-
-```bash
-# Process a simple string
+# Process a simple string with debug output
 sample-project process "Hello World" --debug
 
-# Process a JSON string with a specific processor
+# Process JSON data with a specific processor
 sample-project process '{"name": "test", "value": 42}' --processor-type data
 
-# Save the output to a file
+# Process data and save the result to a file
 sample-project process "batch data" --save results.json
 ```
 
-#### Batch Processing
-
-Process multiple data items from a file (`.json` or `.jsonl`).
+**Process a batch file:**
 
 ```bash
 # Process a JSONL file and save the output
 sample-project batch data.jsonl --output results.json
 
-# Process a JSON file with a limit and no progress bar
+# Process a JSON array, limiting to 50 items and hiding the progress bar
 sample-project batch data.json --max-items 50 --no-show-progress
 ```
 
-#### Manage Configuration
-
-Create, view, and validate configuration files.
+**Manage configuration:**
 
 ```bash
 # Show the configuration from a specific file
 sample-project config show --file my_config.json
 
 # Create a new configuration file with custom settings
-sample-project config create --file new_config.json --debug --max-items 200
+sample-project config create --debug --max-items 200
 
 # Validate an existing configuration file
 sample-project config validate --file production.json
 ```
 
-#### View Statistics
-
-Display processing statistics, such as items processed and cache size.
+**View statistics:**
 
 ```bash
-# Show statistics for the default processor
+# Show statistics for the 'sample' processor
 sample-project stats --processor-type sample
 
 # Reset all statistics
 sample-project stats --reset
 ```
 
-#### Interactive Mode
+### Library Usage
 
-Start a REPL-like interactive session for quick experiments.
+You can also use `sample-project` as a library in your own Python applications.
 
-```bash
-sample-project interactive
-```
-```
-Welcome to Sample Project Interactive Mode!
-Type 'help' for available commands, 'exit' to quit.
-
-[bold blue]sample-project>[/bold blue] Hello there!
-Result:
-{
-  "success": true,
-  "content": "Processed: Hello there!",
-  "error": null,
-  // ... metadata
-}
-```
-
-### As a Python Library
-
-You can also import and use the project's components in your own Python code.
+**Basic Usage:**
 
 ```python
 from sample_project import SampleProcessor, Config
 from sample_project.models import DataModel
 
-# 1. Initialize with a custom configuration
+# Initialize with custom configuration
 config = Config(debug=True, max_items=100)
 processor = SampleProcessor(config)
 
-# 2. Create a data model instance
-data = DataModel(name="test_entity", value=42, description="An example entity")
+# Process a simple string
+result = processor.process("Hello World")
+print(result.content)
+# Expected output: Processed: Hello World
 
-# 3. Process the data
-result = processor.process(data)
-
-# 4. Print the result
-if result.is_success():
-    print("Processing successful!")
-    print(result.to_json(indent=2))
-else:
-    print(f"Processing failed: {result.error}")
+# Process a structured data model
+data = DataModel(name="test_entity", value=42, description="A test entity")
+model_result = processor.process_data_model(data)
+print(model_result.content)
+# Expected output: {'name': 'Processed: TEST_ENTITY', 'value': 42, ...} (if uppercase=True)
 ```
 
----
+**Quick Setup Helper:**
+
+The library provides a `quick_setup` function for convenience.
+
+```python
+from sample_project import quick_setup
+
+# Get a processor instance with default settings and debug mode enabled
+processor = quick_setup(debug=True, max_items=50)
+
+result = processor.process("Quick and easy!")
+print(result.success)
+# Expected output: True
+```
 
 ## Project Structure
 
-The project follows a standard structure for Python applications, separating concerns into distinct modules.
+The project follows a standard layout for modern Python packages.
 
 ```
 sample-project/
-├── __init__.py         # Makes the directory a package and exposes key components.
-├── cli.py              # Command-line interface logic using Typer and Rich.
-├── config.py           # Configuration management (loading, validation, models).
-├── main.py             # Core business logic and primary data processors.
-├── models.py           # Pydantic-style data models and schemas.
-└── utils.py            # Common utility functions, decorators, and helpers.
+├── sample_project/
+│   ├── __init__.py      # Package initializer, exposes main components
+│   ├── cli.py           # Command-line interface logic (Typer)
+│   ├── config.py        # Configuration models and loading
+│   ├── main.py          # Core business logic and processors
+│   ├── models.py        # Data models and schemas (dataclasses)
+│   └── utils.py         # Utility functions and decorators
+└── setup.py             # Setup script for backward compatibility
 ```
 
--   **`cli.py`**: Command-line interface for the Sample Project.
--   **`config.py`**: Configuration management for the Sample Project.
--   **`main.py`**: Core business logic and main processing classes.
--   **`models.py`**: Data models and schemas for the Sample Project.
--   **`utils.py`**: Utility functions and decorators for the Sample Project.
+## API Reference
 
----
+This section details the public API of the `sample-project` package.
 
-## API Documentation
+### `sample_project.main`
 
-This section provides a high-level overview of the most important classes. For detailed information, please refer to the docstrings within the source code.
+Contains the core processing classes and factory functions.
 
-### Core Classes
+| Class / Function          | Description                                                    |
+| ------------------------- | -------------------------------------------------------------- |
+| `SampleProcessor(config)` | Main processor for handling various data processing tasks.     |
+| `DataProcessor(config)`   | Specialized processor for structured data operations.          |
+| `create_processor(type, config)` | Factory function to create different types of processors. |
+| `quick_process(data, **cfg)` | Convenience function to process data with default settings.  |
 
-#### `main.SampleProcessor`
+**`SampleProcessor` Methods**
 
-The main processor class for handling various data processing tasks. It can handle different types of input data and apply transformations based on configuration settings.
+| Method                      | Parameters                     | Returns             | Description                                          |
+| --------------------------- | ------------------------------ | ------------------- | ---------------------------------------------------- |
+| `process(data)`             | `data: Any`                    | `ResultModel`       | Processes input data and returns a `ResultModel`.      |
+| `process_async(data)`       | `data: Any`                    | `await ResultModel` | Asynchronously processes data.                       |
+| `process_batch(data_list)`  | `data_list: List[Any]`         | `List[ResultModel]` | Processes multiple items in a batch.                 |
+| `get_statistics()`          | -                              | `Dict`              | Retrieves current processing statistics.             |
+| `clear_cache()`             | -                              | `None`              | Clears the internal processing cache.                |
+| `reset_counters()`          | -                              | `None`              | Resets the `processed_count` and `error_count`.      |
 
-**Example:**
-```python
->>> config = Config(debug=True, max_items=100)
->>> processor = SampleProcessor(config)
->>> result = processor.process("Hello World")
->>> print(result.content)
-Processed: Hello World
+### `sample_project.models`
+
+Defines the data structures used throughout the application.
+
+| Class             | Description                                                       |
+| ----------------- | ----------------------------------------------------------------- |
+| `DataModel`       | Primary data model for representing business entities.            |
+| `ResultModel`     | Encapsulates the results of data processing operations.           |
+| `ConfigModel`     | Represents configuration options that can be persisted and loaded.|
+| `TaskModel`       | Represents individual tasks for queueing and tracking.            |
+
+**`DataModel` Methods**
+
+| Method                 | Parameters          | Returns  | Description                                        |
+| ---------------------- | ------------------- | -------- | -------------------------------------------------- |
+| `add_tag(tag)`         | `tag: str`          | `None`   | Adds a tag to the model's tag list.                |
+| `remove_tag(tag)`      | `tag: str`          | `None`   | Removes a tag from the model.                      |
+| `has_tag(tag)`         | `tag: str`          | `bool`   | Checks if the model has a specific tag.            |
+| `calculate_score()`    | -                   | `float`  | Calculates a composite score based on attributes.  |
+| `set_metadata(k, v)`   | `key: str, value: Any` | `None`   | Sets a metadata key-value pair.                    |
+
+### `sample_project.config`
+
+Handles all configuration for the application.
+
+| Class           | Description                                                        |
+| --------------- | ------------------------------------------------------------------ |
+| `Config(...)`   | Main configuration class managing all settings via dataclass fields.|
+
+### `sample_project.utils`
+
+A collection of helper functions and decorators.
+
+| Function / Decorator       | Description                                                           |
+| -------------------------- | --------------------------------------------------------------------- |
+| `@timing_decorator`        | Decorator to measure and log a function's execution time.             |
+| `@retry_decorator(...)`    | Decorator to retry a function with exponential backoff.               |
+| `@cache_decorator(...)`    | Decorator for simple time-to-live (TTL) caching of function results.  |
+| `validate_input(...)`      | Validates data using a list of validator functions.                   |
+| `format_output(...)`       | Formats data for output in various formats (JSON, YAML, etc.).        |
+| `safe_file_operation(...)` | Safely performs file I/O operations with error handling.              |
+| `deep_merge_dicts(...)`    | Recursively merges two dictionaries.                                  |
+
+## Running Tests
+
+The project uses `pytest` for testing. To run the test suite, first install the development dependencies:
+
+```bash
+pip install -r requirements-dev.txt  # Assuming a dev requirements file
+# Or manually:
+pip install pytest pytest-cov pytest-mock black flake8 mypy
 ```
 
-#### `config.Config`
+Then, run the tests from the project's root directory:
 
-Manages all configuration settings for the project, including processing parameters, system settings, and feature flags. Settings can be loaded from files, environment variables, or set at runtime.
+```bash
+# Run all tests
+pytest
 
-**Example:**
-```python
->>> config = Config(debug=True, max_items=50)
->>> config.debug
-True
+# Run tests with code coverage report
+pytest --cov=sample_project
 ```
-
-#### `models.DataModel`
-
-The primary data model for representing business entities. This model is used throughout the application for processing and storage, and includes validation logic.
-
-**Example:**
-```python
->>> model = DataModel(
-...     name="test_entity",
-...     value=42,
-...     description="A test entity",
-...     tags=["test", "example"]
-... )
->>> model.validate()
-True
-```
-
-#### `models.ResultModel`
-
-A model for representing the outcome of a processing operation. It encapsulates the success status, processed content, error messages, and any relevant metadata.
-
-**Example:**
-```python
->>> result = ResultModel(
-...     success=True,
-...     content="Processed data",
-...     metadata={"processor": "SampleProcessor"}
-... )
->>> result.success
-True
-```
-
----
-
-## Dependencies
-
-The project has a rich set of dependencies to support its features.
-
-#### Core Dependencies
-
--   **`typer` & `rich`**: For the command-line interface.
--   **`click`**: A dependency of Typer.
--   **`pydantic`**: For data models and validation.
--   **`pyyaml`**: For handling YAML configuration and output.
--   **`requests`**: For making HTTP requests.
--   **`structlog` & `colorlog`**: For structured and colored logging.
-
-#### Development & Testing Dependencies
-
--   `pytest`, `pytest-cov`, `pytest-mock`
--   `black`, `flake8`, `mypy`
--   `pre-commit`
--   `sphinx`, `sphinx-rtd-theme`, `myst-parser`
-
-A complete list of dependencies can be found in the project's `pyproject.toml` file.
-
----
 
 ## Contributing
 
-Contributions are welcome! If you have suggestions for improvements or want to report a bug, please feel free to open an issue or submit a pull request on the [GitHub repository](https://github.com/example/sample-project.git).
+Contributions are welcome! Please follow these steps to contribute:
 
-When contributing, please ensure you:
-1.  Fork the repository.
-2.  Create a new branch for your feature or bug fix.
-3.  Add tests for your changes.
-4.  Run tests locally (`pytest`).
-5.  Format your code (`black .`).
-6.  Submit a pull request.
-
----
+1.  **Fork the repository** on GitHub.
+2.  **Clone your fork** locally:
+    ```bash
+    git clone https://github.com/your-username/sample-project.git
+    cd sample-project
+    ```
+3.  **Create a virtual environment** and install dependencies, including development tools:
+    ```bash
+    python -m venv venv
+    source venv/bin/activate
+    pip install -e .[dev]  # Assuming a 'dev' extra in setup.cfg/pyproject.toml
+    ```
+4.  **Set up pre-commit hooks** to ensure code quality and style consistency:
+    ```bash
+    pre-commit install
+    ```
+5.  **Create a new branch** for your feature or bug fix:
+    ```bash
+    git checkout -b my-new-feature
+    ```
+6.  **Make your changes** and write tests for them.
+7.  **Run tests** and ensure they all pass:
+    ```bash
+    pytest
+    ```
+8.  **Commit your changes** and **push to your fork**.
+9.  **Open a pull request** from your fork to the main `sample-project` repository.
 
 ## License
 
-This project is licensed under the **MIT License**. See the LICENSE file for details.
-
----
-
-## Contact
-
-**John Developer** - [john.dev@example.com](mailto:john.dev@example.com)
-
-Project Link: [https://github.com/example/sample-project.git](https://github.com/example/sample-project.git)
+This project is licensed under the MIT License. See the [LICENSE](https://opensource.org/licenses/MIT) file for details.
