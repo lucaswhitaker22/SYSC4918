@@ -149,11 +149,11 @@ Write a professional, accurate, and comprehensive README.md for the project "{pr
 
 Requirements:
 1. The README must have these sections, in order:
-   - Project Title and Badges (CI, version, license, etc. if present in metadata)
+   - Project Title and Badges (CI, version, license, author etc. if present in metadata)
    - Overview (1-2 sentence summary of project purpose and key features)
    - Detailed Description (expand on what the project does and its unique value)
    - Installation Instructions (with real commands for pip/conda, list all dependencies)
-   - Usage (clear code examples with realistic usage patterns and expected output)
+   - Usage (clear code examples with realistic usage patterns and expected output, data models, and discuss configuration values)
    - Project Structure (directory/files tree as Markdown, based on the parsed files)
    - API Reference (for all public classes/functions, including parameters and return values)
    - Running Tests (if test files detected, show exact test commands)

@@ -201,7 +201,7 @@
           "name": "version",
           "docstring": "Show version information.",
           "decorators": [
-            "<ast.Call object at 0x0000012C47215F90>"
+            "<ast.Call object at 0x00000272D35C5F90>"
           ],
           "args": []
         },
@@ -209,7 +209,7 @@
           "name": "process",
           "docstring": "Process input data using the specified processor.\n\nExamples:\n    sample-project process \"Hello World\" --debug\n    sample-project process '{\"name\": \"test\", \"value\": 42}' --processor-type data\n    sample-project process \"batch data\" --save results.json",
           "decorators": [
-            "<ast.Call object at 0x0000012C4717D350>"
+            "<ast.Call object at 0x00000272D352D110>"
           ],
           "args": [
             "input_data",
@@ -225,7 +225,7 @@
           "name": "batch",
           "docstring": "Process multiple items from a file in batch mode.\n\nInput file should contain JSON lines or a JSON array.\n\nExamples:\n    sample-project batch data.jsonl --output results.json\n    sample-project batch data.json --max-items 50 --no-show-progress",
           "decorators": [
-            "<ast.Call object at 0x0000012C471BFED0>"
+            "<ast.Call object at 0x00000272D35C3B50>"
           ],
           "args": [
             "input_file",
@@ -240,7 +240,7 @@
           "name": "config",
           "docstring": "Manage configuration files.\n\nActions:\n    show: Display current configuration\n    create: Create a new configuration file\n    validate: Validate an existing configuration file\n\nExamples:\n    sample-project config show --file my_config.json\n    sample-project config create --debug --max-items 200\n    sample-project config validate --file production.json",
           "decorators": [
-            "<ast.Call object at 0x0000012C4717A890>"
+            "<ast.Call object at 0x00000272D3528950>"
           ],
           "args": [
             "action",
@@ -254,7 +254,7 @@
           "name": "stats",
           "docstring": "Show or reset processor statistics.\n\nExamples:\n    sample-project stats --processor-type sample\n    sample-project stats --reset",
           "decorators": [
-            "<ast.Call object at 0x0000012C471D5350>"
+            "<ast.Call object at 0x00000272D3550ED0>"
           ],
           "args": [
             "processor_type",
@@ -266,7 +266,7 @@
           "name": "interactive",
           "docstring": "Start an interactive session for data processing.\n\nThis provides a REPL-like interface for experimenting with the processors.",
           "decorators": [
-            "<ast.Call object at 0x0000012C471F4710>"
+            "<ast.Call object at 0x00000272D35A4290>"
           ],
           "args": []
         },
@@ -289,8 +289,8 @@
           "name": "cli",
           "docstring": "Alternative Click-based CLI interface.",
           "decorators": [
-            "<ast.Call object at 0x0000012C471F3BD0>",
-            "<ast.Call object at 0x0000012C471F3F10>"
+            "<ast.Call object at 0x00000272D35975D0>",
+            "<ast.Call object at 0x00000272D35977D0>"
           ],
           "args": []
         },
@@ -298,10 +298,10 @@
           "name": "click_process",
           "docstring": "Process data using Click interface.",
           "decorators": [
-            "<ast.Call object at 0x0000012C4720B350>",
-            "<ast.Call object at 0x0000012C4720B550>",
-            "<ast.Call object at 0x0000012C4720B7D0>",
-            "<ast.Call object at 0x0000012C4720BC50>"
+            "<ast.Call object at 0x00000272D359AED0>",
+            "<ast.Call object at 0x00000272D359B0D0>",
+            "<ast.Call object at 0x00000272D359B350>",
+            "<ast.Call object at 0x00000272D359B7D0>"
           ],
           "args": [
             "data",
