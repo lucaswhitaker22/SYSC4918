@@ -69,7 +69,7 @@ Performance Target:
     parser.add_argument('--json-output', type=str, help='Save parsed project data as JSON file')
     parser.add_argument('--model', choices=['gemini_2_5_pro', 'gemini_2_5_flash', 'gpt_4o', 'gpt_4o_mini', 'claude_sonnet'], default='gemini_2_5_pro', help='LLM model to use')
     parser.add_argument('--api-key', type=str, help='API key for LLM service')
-    parser.add_argument('--max-tokens', type=int, default=1_000_000, help='Maximum token budget')
+    parser.add_argument('--max-tokens', type=int, default=1000000, help='Maximum token budget')
     parser.add_argument('--include-tests', action='store_true', help='Include test files in analysis')
     parser.add_argument('--include-private', action='store_true', help='Include private methods and classes')
     parser.add_argument('--config', type=str, help='Path to configuration file')
@@ -105,8 +105,8 @@ def validate_arguments(args: argparse.Namespace) -> None:
 
 def validate_api_requirements(model_name: str, api_key: str) -> str:
     env_key_mapping = {
-        'gemini_2_5_pro': 'GEMINI_API_KEY',
-        'gemini_2_5_flash': 'GEMINI_API_KEY', 
+        'gemini_2_5_pro': 'AIzaSyCaB-JT3ear0wPh32huI1XjRAoosJAzAZw',
+        'gemini_2_5_flash': 'AIzaSyCaB-JT3ear0wPh32huI1XjRAoosJAzAZw', 
         'gpt_4o': 'OPENAI_API_KEY',
         'gpt_4o_mini': 'OPENAI_API_KEY',
         'claude_sonnet': 'ANTHROPIC_API_KEY'
@@ -169,21 +169,29 @@ async def generate_readme_with_llm(project_data: dict, config: Config, api_key: 
         raise LLMAPIError(f"Unsupported model: {config.model_name}")
 
 def create_readme_prompt(project_data: dict, project_name: str) -> str:
-    return f"""You are an expert technical writer specializing in creating comprehensive README files for Python projects.
-Generate a professional, well-structured README.md file for the project "{project_name}" based on the following parsed project information:
+    return f"""
+You are an expert technical writer for open-source Python projects. 
+Write a professional, accurate, and comprehensive README.md for the project "{project_name}", based **solely** on this parsed project data:
 {json.dumps(project_data, indent=2)}
 
 Requirements:
-1. Create a complete README with these essential sections:
-   - Project Description (clear, concise overview)
-   - Installation Instructions
-   - Usage Examples
-   - Project Structure
-   - Dependencies
-   - API Documentation (key classes/functions)
-2. Use proper Markdown formatting.
-3. Be accurate to the actual project structure and dependencies.
-Only output the README content in Markdown format."""
+1. The README must have these sections, in order:
+   - Project Title and Badges (CI, version, license, etc. if present in metadata)
+   - Overview (1-2 sentence summary of project purpose and key features)
+   - Detailed Description (expand on what the project does and its unique value)
+   - Installation Instructions (with real commands for pip/conda, list all dependencies)
+   - Usage (clear code examples with realistic usage patterns and expected output)
+   - Project Structure (directory/files tree as Markdown, based on the parsed files)
+   - API Reference (for all public classes/functions, including parameters and return values)
+   - Running Tests (if test files detected, show exact test commands)
+   - Contributing Guidelines (if supporting contributions)
+   - License (pull text or identifier from metadata if available)
+2. Use Markdown best practices: fenced code blocks, tables for API/commands, real file/dir trees, and badge syntax.
+3. Avoid placeholder text. If information is missing, omit the section rather than guessing.
+4. All content **must** match the actual project metadata and structure given above.
+Output ONLY the Markdown for a README file.
+"""
+
 
 async def generate_with_gemini(prompt: str, api_key: str) -> str:
     if not genai:

@@ -1,0 +1,2738 @@
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/sample_project\setup.py
+#!/usr/bin/env python3
+"""
+Setup configuration for sample-project.
+
+This file provides backward compatibility for systems that don't support
+PEP 517/518 build systems. Modern installations should prefer pyproject.toml.
+"""
+
+from setuptools import setup, find_packages
+from pathlib import Path
+import re
+
+# Read version from package
+def get_version():
+    """Extract version from package __init__.py"""
+    init_file = Path(__file__).parent / "sample_project" / "__init__.py"
+    if init_file.exists():
+        with open(init_file, encoding='utf-8') as f:
+            content = f.read()
+            match = re.search(r'^__version__ = ["\']([^"\']+)["\']', content, re.M)
+            if match:
+                return match.group(1)
+    return "1.2.3"  # fallback version
+
+# Read long description from README
+def get_long_description():
+    """Read long description from README file"""
+    readme_file = Path(__file__).parent / "README.md"
+    if readme_file.exists():
+        with open(readme_file, encoding='utf-8') as f:
+            return f.read()
+    return "A comprehensive sample Python project for testing README generation"
+
+# Read requirements from files
+def get_requirements(filename):
+    """Read requirements from requirements file"""
+    req_file = Path(__file__).parent / filename
+    if req_file.exists():
+        with open(req_file, encoding='utf-8') as f:
+            return [
+                line.strip() 
+                for line in f 
+                if line.strip() and not line.startswith('#')
+            ]
+    return []
+
+setup(
+    # Basic package information
+    name="sample-project",
+    version=get_version(),
+    description="A comprehensive sample Python project for testing README generation",
+    long_description=get_long_description(),
+    long_description_content_type="text/markdown",
+    
+    # Author information
+    author="John Developer",
+    author_email="john.dev@example.com",
+    maintainer="John Developer",
+    maintainer_email="john.dev@example.com",
+    
+    # URLs
+    url="https://github.com/example/sample-project",
+    project_urls={
+        "Documentation": "https://sample-project.readthedocs.io/",
+        "Source Code": "https://github.com/example/sample-project",
+        "Bug Reports": "https://github.com/example/sample-project/issues",
+        "Funding": "https://github.com/sponsors/example",
+        "Changelog": "https://github.com/example/sample-project/blob/main/CHANGELOG.md",
+    },
+    
+    # Package discovery
+    packages=find_packages(exclude=["tests*", "docs*", "scripts*"]),
+    package_dir={"": "."},
+    
+    # Package data
+    package_data={
+        "sample_project": [
+            "data/*.json",
+            "templates/*.txt", 
+            "config/*.yaml",
+            "static/*.css",
+            "static/*.js"
+        ],
+    },
+    include_package_data=True,
+    
+    # Dependencies
+    install_requires=[
+        "requests>=2.25.0",
+        "click>=8.0.0", 
+        "pydantic>=1.8.0,<3.0.0",
+        "rich>=10.0.0",
+        "typer>=0.4.0",
+        "pyyaml>=6.0",
+        "configparser>=5.0.0"
+    ],
+    
+    # Optional dependencies
+    extras_require={
+        "dev": [
+            "pytest>=7.0.0",
+            "pytest-cov>=4.0.0",
+            "pytest-mock>=3.10.0",
+            "black>=22.0.0",
+            "flake8>=4.0.0",
+            "mypy>=1.0.0",
+            "pre-commit>=2.20.0"
+        ],
+        "test": [
+            "pytest>=7.0.0",
+            "pytest-cov>=4.0.0", 
+            "pytest-mock>=3.10.0",
+            "coverage>=6.0.0"
+        ],
+        "docs": [
+            "sphinx>=4.0.0",
+            "sphinx-rtd-theme>=1.0.0",
+            "myst-parser>=0.18.0"
+        ],
+        "async": [
+            "aiohttp>=3.8.0",
+            "asyncio-mqtt>=0.11.0"
+        ],
+        "all": [
+            # Combines all optional dependencies
+            "pytest>=7.0.0", "pytest-cov>=4.0.0", "pytest-mock>=3.10.0",
+            "black>=22.0.0", "flake8>=4.0.0", "mypy>=1.0.0", "pre-commit>=2.20.0",
+            "coverage>=6.0.0", "sphinx>=4.0.0", "sphinx-rtd-theme>=1.0.0",
+            "myst-parser>=0.18.0", "aiohttp>=3.8.0", "asyncio-mqtt>=0.11.0"
+        ]
+    },
+    
+    # Entry points
+    entry_points={
+        "console_scripts": [
+            "sample-cli=sample_project.cli:main",
+            "sample-tool=sample_project.main:run_tool",
+            "sample-project=sample_project.cli:main",
+        ],
+        "sample_project.plugins": [
+            "default=sample_project.plugins:DefaultPlugin",
+            "advanced=sample_project.plugins:AdvancedPlugin",
+        ],
+    },
+    
+    # Metadata
+    keywords=["sample", "example", "demo", "cli", "utility"],
+    license="MIT",
+    
+    # Classifiers
+    classifiers=[
+        # Development Status
+        "Development Status :: 4 - Beta",
+        
+        # Intended Audience
+        "Intended Audience :: Developers",
+        "Intended Audience :: End Users/Desktop",
+        "Intended Audience :: System Administrators",
+        
+        # License
+        "License :: OSI Approved :: MIT License",
+        
+        # Operating Systems
+        "Operating System :: OS Independent",
+        "Operating System :: POSIX",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: MacOS",
+        
+        # Programming Languages
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3 :: Only",
+        
+        # Topics
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: Software Development :: Tools",
+        "Topic :: Utilities",
+        "Topic :: System :: Systems Administration",
+        "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+        
+        # Natural Language
+        "Natural Language :: English",
+        
+        # Environment
+        "Environment :: Console",
+        "Environment :: Web Environment",
+    ],
+    
+    # Python version requirement
+    python_requires=">=3.8",
+    
+    # Additional options
+    zip_safe=False,
+    platforms=["any"],
+    
+    # Test suite
+    test_suite="tests",
+    tests_require=get_requirements("requirements-test.txt"),
+    
+    # Command class customizations (if needed)
+    # cmdclass={
+    #     'test': CustomTestCommand,
+    #     'build_ext': CustomBuildExtCommand,
+    # },
+)
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/sample_project\docs\examples.py
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/sample_project\sample_project\cli.py
+"""
+Command-line interface for the Sample Project.
+
+This module provides a comprehensive CLI for interacting with the sample project,
+including data processing, configuration management, and various utility commands.
+"""
+
+import argparse
+import asyncio
+import json
+import sys
+import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import click
+import typer
+from rich.console import Console
+from rich.table import Table
+from rich.progress import track
+
+from .main import SampleProcessor, DataProcessor, create_processor, ProcessingError
+from .config import Config, load_config, save_config
+from .models import DataModel, ValidationError
+from .utils import format_output, validate_input
+
+# Initialize rich console for beautiful output
+console = Console()
+
+# Typer app for modern CLI
+app = typer.Typer(
+    name="sample-project",
+    help="A comprehensive sample project CLI for data processing and management.",
+    add_completion=False,
+    rich_markup_mode="rich"
+)
+
+# Version information
+__version__ = "1.2.3"
+
+
+class CLIError(Exception):
+    """Custom exception for CLI-related errors."""
+    pass
+
+
+@app.command()
+def version():
+    """Show version information."""
+    console.print(f"Sample Project CLI v{__version__}", style="bold green")
+    console.print(f"Python: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+
+
+@app.command()
+def process(
+    input_data: str = typer.Argument(..., help="Input data to process"),
+    processor_type: str = typer.Option("sample", help="Type of processor to use"),
+    config_file: Optional[str] = typer.Option(None, "--config", "-c", help="Configuration file path"),
+    output_format: str = typer.Option("json", help="Output format (json, yaml, table)"),
+    debug: bool = typer.Option(False, "--debug", help="Enable debug mode"),
+    async_mode: bool = typer.Option(False, "--async", help="Use async processing"),
+    save_result: Optional[str] = typer.Option(None, "--save", help="Save result to file"),
+):
+    """
+    Process input data using the specified processor.
+    
+    Examples:
+        sample-project process "Hello World" --debug
+        sample-project process '{"name": "test", "value": 42}' --processor-type data
+        sample-project process "batch data" --save results.json
+    """
+    try:
+        # Load configuration
+        if config_file:
+            config = load_config(config_file)
+            console.print(f"Loaded config from: {config_file}", style="dim")
+        else:
+            config = Config()
+        
+        # Override config with CLI options
+        if debug:
+            config.debug = debug
+        
+        # Create processor
+        processor = create_processor(processor_type, config)
+        
+        # Process data
+        start_time = time.time()
+        
+        if async_mode:
+            result = asyncio.run(processor.process_async(input_data))
+        else:
+            result = processor.process(input_data)
+        
+        processing_time = time.time() - start_time
+        
+        # Format and display output
+        if output_format == "table":
+            _display_result_table(result, processing_time)
+        elif output_format == "yaml":
+            import yaml
+            output = yaml.dump(result.to_dict(), default_flow_style=False)
+            console.print(output)
+        else:  # json
+            output = json.dumps(result.to_dict(), indent=2)
+            console.print_json(output)
+        
+        # Save result if requested
+        if save_result:
+            with open(save_result, 'w') as f:
+                json.dump(result.to_dict(), f, indent=2)
+            console.print(f"Result saved to: {save_result}", style="green")
+        
+        # Show processing stats if debug
+        if debug:
+            stats = processor.get_statistics()
+            console.print(f"\nProcessing Stats: {stats}", style="dim")
+        
+    except (ProcessingError, ValidationError) as e:
+        console.print(f"Processing Error: {e}", style="bold red")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"Unexpected Error: {e}", style="bold red")
+        if debug:
+            console.print_exception()
+        raise typer.Exit(1)
+
+
+@app.command()
+def batch(
+    input_file: str = typer.Argument(..., help="Input file with data to process"),
+    processor_type: str = typer.Option("sample", help="Type of processor to use"),
+    output_file: Optional[str] = typer.Option(None, "--output", "-o", help="Output file for results"),
+    config_file: Optional[str] = typer.Option(None, "--config", "-c", help="Configuration file"),
+    max_items: int = typer.Option(100, help="Maximum items to process"),
+    show_progress: bool = typer.Option(True, help="Show progress bar"),
+):
+    """
+    Process multiple items from a file in batch mode.
+    
+    Input file should contain JSON lines or a JSON array.
+    
+    Examples:
+        sample-project batch data.jsonl --output results.json
+        sample-project batch data.json --max-items 50 --no-show-progress
+    """
+    try:
+        # Load input data
+        with open(input_file, 'r') as f:
+            if input_file.endswith('.jsonl'):
+                data_items = [json.loads(line.strip()) for line in f if line.strip()]
+            else:
+                content = json.load(f)
+                data_items = content if isinstance(content, list) else [content]
+        
+        console.print(f"Loaded {len(data_items)} items from {input_file}")
+        
+        # Load configuration
+        config = load_config(config_file) if config_file else Config()
+        config.max_items = max_items
+        
+        # Create processor
+        processor = create_processor(processor_type, config)
+        
+        # Process batch
+        start_time = time.time()
+        
+        if show_progress:
+            results = []
+            for item in track(data_items[:max_items], description="Processing items..."):
+                try:
+                    result = processor.process(item)
+                    results.append(result)
+                except Exception as e:
+                    console.print(f"Failed to process item: {e}", style="yellow")
+                    results.append({"success": False, "error": str(e)})
+        else:
+            results = processor.process_batch(data_items[:max_items])
+        
+        processing_time = time.time() - start_time
+        
+        # Prepare output
+        output_data = {
+            "batch_info": {
+                "total_items": len(results),
+                "processing_time": processing_time,
+                "processor_type": processor_type,
+                "config": config.to_dict()
+            },
+            "results": [r.to_dict() if hasattr(r, 'to_dict') else r for r in results]
+        }
+        
+        # Save or display results
+        if output_file:
+            with open(output_file, 'w') as f:
+                json.dump(output_data, f, indent=2)
+            console.print(f"Batch results saved to: {output_file}", style="green")
+        else:
+            console.print_json(json.dumps(output_data, indent=2))
+        
+        # Show summary
+        successful = sum(1 for r in results if getattr(r, 'success', True))
+        console.print(f"\nBatch Summary: {successful}/{len(results)} successful", style="bold")
+        
+    except FileNotFoundError:
+        console.print(f"Input file not found: {input_file}", style="bold red")
+        raise typer.Exit(1)
+    except json.JSONDecodeError as e:
+        console.print(f"Invalid JSON in input file: {e}", style="bold red")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"Batch processing failed: {e}", style="bold red")
+        raise typer.Exit(1)
+
+
+@app.command()
+def config(
+    action: str = typer.Argument(..., help="Action: show, create, validate"),
+    config_file: Optional[str] = typer.Option("sample_config.json", "--file", "-f", help="Configuration file path"),
+    debug: bool = typer.Option(False, help="Debug mode"),
+    max_items: int = typer.Option(100, help="Maximum items to process"),
+    cache_enabled: bool = typer.Option(True, help="Enable caching"),
+):
+    """
+    Manage configuration files.
+    
+    Actions:
+        show: Display current configuration
+        create: Create a new configuration file
+        validate: Validate an existing configuration file
+    
+    Examples:
+        sample-project config show --file my_config.json
+        sample-project config create --debug --max-items 200
+        sample-project config validate --file production.json
+    """
+    try:
+        if action == "show":
+            if Path(config_file).exists():
+                config = load_config(config_file)
+                console.print(f"Configuration from {config_file}:")
+                console.print_json(json.dumps(config.to_dict(), indent=2))
+            else:
+                console.print(f"Configuration file not found: {config_file}", style="yellow")
+                console.print("Using default configuration:")
+                config = Config()
+                console.print_json(json.dumps(config.to_dict(), indent=2))
+        
+        elif action == "create":
+            config = Config(
+                debug=debug,
+                max_items=max_items,
+                cache_enabled=cache_enabled
+            )
+            save_config(config, config_file)
+            console.print(f"Configuration created: {config_file}", style="green")
+            console.print_json(json.dumps(config.to_dict(), indent=2))
+        
+        elif action == "validate":
+            if not Path(config_file).exists():
+                console.print(f"Configuration file not found: {config_file}", style="bold red")
+                raise typer.Exit(1)
+            
+            try:
+                config = load_config(config_file)
+                console.print(f"✓ Configuration is valid: {config_file}", style="green")
+                
+                # Additional validation checks
+                issues = []
+                if config.max_items <= 0:
+                    issues.append("max_items must be positive")
+                if config.max_size <= 0:
+                    issues.append("max_size must be positive")
+                
+                if issues:
+                    console.print("⚠ Configuration issues found:", style="yellow")
+                    for issue in issues:
+                        console.print(f"  - {issue}")
+                else:
+                    console.print("✓ All validation checks passed", style="green")
+                    
+            except Exception as e:
+                console.print(f"✗ Configuration is invalid: {e}", style="bold red")
+                raise typer.Exit(1)
+        
+        else:
+            console.print(f"Unknown action: {action}", style="bold red")
+            console.print("Available actions: show, create, validate")
+            raise typer.Exit(1)
+    
+    except Exception as e:
+        console.print(f"Configuration command failed: {e}", style="bold red")
+        raise typer.Exit(1)
+
+
+@app.command()
+def stats(
+    processor_type: str = typer.Option("sample", help="Type of processor"),
+    config_file: Optional[str] = typer.Option(None, "--config", "-c", help="Configuration file"),
+    reset: bool = typer.Option(False, "--reset", help="Reset statistics"),
+):
+    """
+    Show or reset processor statistics.
+    
+    Examples:
+        sample-project stats --processor-type sample
+        sample-project stats --reset
+    """
+    try:
+        config = load_config(config_file) if config_file else Config()
+        processor = create_processor(processor_type, config)
+        
+        if reset:
+            processor.reset_counters()
+            processor.clear_cache()
+            console.print("Statistics reset", style="green")
+        else:
+            stats = processor.get_statistics()
+            
+            table = Table(title=f"{processor_type.title()} Processor Statistics")
+            table.add_column("Metric", style="cyan")
+            table.add_column("Value", style="green")
+            
+            for key, value in stats.items():
+                table.add_row(key.replace('_', ' ').title(), str(value))
+            
+            console.print(table)
+    
+    except Exception as e:
+        console.print(f"Stats command failed: {e}", style="bold red")
+        raise typer.Exit(1)
+
+
+@app.command()
+def interactive():
+    """
+    Start an interactive session for data processing.
+    
+    This provides a REPL-like interface for experimenting with the processors.
+    """
+    console.print("Welcome to Sample Project Interactive Mode!", style="bold green")
+    console.print("Type 'help' for available commands, 'exit' to quit.\n")
+    
+    config = Config(debug=True)
+    processor = create_processor("sample", config)
+    
+    while True:
+        try:
+            user_input = console.input("[bold blue]sample-project>[/bold blue] ").strip()
+            
+            if not user_input:
+                continue
+            
+            if user_input.lower() in ['exit', 'quit']:
+                console.print("Goodbye!", style="green")
+                break
+            
+            if user_input.lower() == 'help':
+                _show_interactive_help()
+                continue
+            
+            if user_input.startswith('config '):
+                config_cmd = user_input[7:].strip()
+                if config_cmd == 'show':
+                    console.print_json(json.dumps(config.to_dict(), indent=2))
+                continue
+            
+            if user_input.startswith('stats'):
+                stats = processor.get_statistics()
+                console.print(f"Statistics: {stats}")
+                continue
+            
+            # Process the input
+            try:
+                result = processor.process(user_input)
+                console.print("Result:", style="bold")
+                console.print_json(json.dumps(result.to_dict(), indent=2))
+            except Exception as e:
+                console.print(f"Processing Error: {e}", style="red")
+        
+        except KeyboardInterrupt:
+            console.print("\nGoodbye!", style="green")
+            break
+        except EOFError:
+            console.print("\nGoodbye!", style="green")
+            break
+
+
+def _show_interactive_help():
+    """Show help for interactive mode."""
+    help_table = Table(title="Interactive Mode Commands")
+    help_table.add_column("Command", style="cyan")
+    help_table.add_column("Description", style="white")
+    
+    commands = [
+        ("help", "Show this help message"),
+        ("config show", "Show current configuration"),
+        ("stats", "Show processor statistics"),
+        ("exit/quit", "Exit interactive mode"),
+        ("<data>", "Process any data input"),
+    ]
+    
+    for command, description in commands:
+        help_table.add_row(command, description)
+    
+    console.print(help_table)
+
+
+def _display_result_table(result, processing_time):
+    """Display processing result in table format."""
+    table = Table(title="Processing Result")
+    table.add_column("Field", style="cyan")
+    table.add_column("Value", style="green")
+    
+    table.add_row("Success", str(result.success))
+    table.add_row("Processing Time", f"{processing_time:.3f}s")
+    
+    if result.content:
+        content_str = str(result.content)[:100] + "..." if len(str(result.content)) > 100 else str(result.content)
+        table.add_row("Content", content_str)
+    
+    if result.error:
+        table.add_row("Error", result.error)
+    
+    if result.metadata:
+        for key, value in result.metadata.items():
+            table.add_row(f"Meta: {key}", str(value))
+    
+    console.print(table)
+
+
+# Click-based alternative commands (for demonstration)
+@click.group()
+@click.version_option(version=__version__)
+def cli():
+    """Alternative Click-based CLI interface."""
+    pass
+
+
+@cli.command()
+@click.argument('data')
+@click.option('--debug/--no-debug', default=False, help='Enable debug mode')
+@click.option('--format', type=click.Choice(['json', 'yaml', 'table']), default='json')
+def click_process(data, debug, format):
+    """Process data using Click interface."""
+    config = Config(debug=debug)
+    processor = SampleProcessor(config)
+    
+    try:
+        result = processor.process(data)
+        
+        if format == 'json':
+            click.echo(json.dumps(result.to_dict(), indent=2))
+        elif format == 'table':
+            click.echo(f"Success: {result.success}")
+            click.echo(f"Content: {result.content}")
+        
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+# Entry point for console scripts
+def main():
+    """Main entry point for the CLI application."""
+    try:
+        app()
+    except KeyboardInterrupt:
+        console.print("\nOperation cancelled by user.", style="yellow")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"Unexpected error: {e}", style="bold red")
+        sys.exit(1)
+
+
+# Alternative entry point for Click
+def click_main():
+    """Entry point for Click-based CLI."""
+    cli()
+
+
+if __name__ == "__main__":
+    main()
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/sample_project\sample_project\config.py
+"""
+Configuration management for the Sample Project.
+
+This module provides comprehensive configuration handling including
+loading from files, environment variables, and runtime settings.
+"""
+
+import json
+import os
+from dataclasses import dataclass, field, asdict
+from pathlib import Path
+from typing import Any, Dict, Optional, Union, List
+import logging
+from enum import Enum
+
+logger = logging.getLogger(__name__)
+
+
+class LogLevel(Enum):
+    """Enumeration of supported log levels."""
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
+
+
+class ConfigError(Exception):
+    """Raised when configuration operations fail."""
+    pass
+
+
+@dataclass
+class Config:
+    """
+    Main configuration class for the Sample Project.
+    
+    This class manages all configuration settings including
+    processing parameters, system settings, and feature flags.
+    
+    Attributes:
+        debug: Enable debug mode
+        max_items: Maximum number of items to process
+        max_size: Maximum size limit for data processing
+        timeout: Timeout in seconds for operations
+        cache_enabled: Whether to enable result caching
+        log_level: Logging level
+        output_format: Default output format
+        
+        # Processing options
+        uppercase: Convert strings to uppercase during processing
+        multiply_factor: Multiplication factor for numeric processing
+        
+        # Advanced settings
+        parallel_processing: Enable parallel processing
+        max_workers: Maximum number of worker threads
+        retry_attempts: Number of retry attempts for failed operations
+        retry_delay: Delay between retries in seconds
+        
+        # Feature flags
+        experimental_features: Enable experimental features
+        strict_validation: Enable strict input validation
+        
+        # File and directory settings
+        data_directory: Directory for data files
+        output_directory: Directory for output files
+        temp_directory: Temporary directory for processing
+        
+        # External service settings
+        api_endpoints: Dictionary of external API endpoints
+        api_timeouts: Timeout settings for external APIs
+        api_keys: API keys for external services
+        
+    Example:
+        >>> config = Config(debug=True, max_items=50)
+        >>> config.debug
+        True
+        >>> config.is_debug_mode()
+        True
+    """
+    
+    # Core settings
+    debug: bool = False
+    max_items: int = 100
+    max_size: int = 10000
+    timeout: int = 30
+    cache_enabled: bool = True
+    log_level: LogLevel = LogLevel.INFO
+    output_format: str = "json"
+    
+    # Processing options
+    uppercase: bool = False
+    multiply_factor: Optional[float] = None
+    
+    # Advanced settings
+    parallel_processing: bool = False
+    max_workers: int = 4
+    retry_attempts: int = 3
+    retry_delay: float = 1.0
+    
+    # Feature flags
+    experimental_features: bool = False
+    strict_validation: bool = True
+    
+    # File and directory settings
+    data_directory: str = "data"
+    output_directory: str = "output"
+    temp_directory: str = "temp"
+    
+    # External service settings
+    api_endpoints: Dict[str, str] = field(default_factory=dict)
+    api_timeouts: Dict[str, int] = field(default_factory=dict)
+    api_keys: Dict[str, str] = field(default_factory=dict)
+    
+    # Custom settings for extensibility
+    custom_settings: Dict[str, Any] = field(default_factory=dict)
+    
+    def __post_init__(self):
+        """Initialize configuration after instance creation."""
+        # Load from environment variables
+        self._load_from_environment()
+        
+        # Set up default API endpoints
+        if not self.api_endpoints:
+            self.api_endpoints = {
+                "test_api": "https://api.example.com/v1",
+                "backup_api": "https://backup.example.com/v1",
+            }
+        
+        # Set up default API timeouts
+        if not self.api_timeouts:
+            self.api_timeouts = {
+                "test_api": 30,
+                "backup_api": 60,
+            }
+        
+        # Validate configuration
+        self.validate()
+    
+    def validate(self) -> None:
+        """
+        Validate configuration settings.
+        
+        Raises:
+            ConfigError: If configuration is invalid
+        """
+        if self.max_items <= 0:
+            raise ConfigError("max_items must be positive")
+        
+        if self.max_size <= 0:
+            raise ConfigError("max_size must be positive")
+        
+        if self.timeout <= 0:
+            raise ConfigError("timeout must be positive")
+        
+        if self.max_workers <= 0:
+            raise ConfigError("max_workers must be positive")
+        
+        if self.retry_attempts < 0:
+            raise ConfigError("retry_attempts cannot be negative")
+        
+        if self.retry_delay < 0:
+            raise ConfigError("retry_delay cannot be negative")
+        
+        # Validate directories exist or can be created
+        for dir_attr in ['data_directory', 'output_directory', 'temp_directory']:
+            dir_path = Path(getattr(self, dir_attr))
+            try:
+                dir_path.mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                logger.warning(f"Cannot create directory {dir_path}: {e}")
+    
+    def _load_from_environment(self) -> None:
+        """Load configuration values from environment variables."""
+        env_mappings = {
+            'SAMPLE_DEBUG': ('debug', lambda x: x.lower() == 'true'),
+            'SAMPLE_MAX_ITEMS': ('max_items', int),
+            'SAMPLE_MAX_SIZE': ('max_size', int),
+            'SAMPLE_TIMEOUT': ('timeout', int),
+            'SAMPLE_CACHE_ENABLED': ('cache_enabled', lambda x: x.lower() == 'true'),
+            'SAMPLE_LOG_LEVEL': ('log_level', lambda x: LogLevel(x.upper())),
+            'SAMPLE_OUTPUT_FORMAT': ('output_format', str),
+            'SAMPLE_UPPERCASE': ('uppercase', lambda x: x.lower() == 'true'),
+            'SAMPLE_MULTIPLY_FACTOR': ('multiply_factor', float),
+            'SAMPLE_PARALLEL_PROCESSING': ('parallel_processing', lambda x: x.lower() == 'true'),
+            'SAMPLE_MAX_WORKERS': ('max_workers', int),
+            'SAMPLE_RETRY_ATTEMPTS': ('retry_attempts', int),
+            'SAMPLE_RETRY_DELAY': ('retry_delay', float),
+            'SAMPLE_EXPERIMENTAL': ('experimental_features', lambda x: x.lower() == 'true'),
+            'SAMPLE_STRICT_VALIDATION': ('strict_validation', lambda x: x.lower() == 'true'),
+            'SAMPLE_DATA_DIR': ('data_directory', str),
+            'SAMPLE_OUTPUT_DIR': ('output_directory', str),
+            'SAMPLE_TEMP_DIR': ('temp_directory', str),
+        }
+        
+        for env_var, (attr_name, converter) in env_mappings.items():
+            env_value = os.getenv(env_var)
+            if env_value is not None:
+                try:
+                    converted_value = converter(env_value)
+                    setattr(self, attr_name, converted_value)
+                    logger.debug(f"Loaded {attr_name} from environment: {converted_value}")
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Failed to convert environment variable {env_var}: {e}")
+        
+        # Load API keys from environment
+        api_key_prefixes = ['SAMPLE_API_KEY_', 'API_KEY_']
+        for prefix in api_key_prefixes:
+            for key, value in os.environ.items():
+                if key.startswith(prefix):
+                    service_name = key[len(prefix):].lower()
+                    self.api_keys[service_name] = value
+                    logger.debug(f"Loaded API key for service: {service_name}")
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert configuration to dictionary representation.
+        
+        Returns:
+            Dictionary containing all configuration values
+        """
+        config_dict = asdict(self)
+        
+        # Convert LogLevel enum to string
+        if isinstance(config_dict.get('log_level'), LogLevel):
+            config_dict['log_level'] = self.log_level.value
+        
+        return config_dict
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/sample_project\sample_project\main.py
+"""
+Core business logic and main processing classes.
+
+This module contains the primary functionality of the sample project,
+including data processors, business logic, and core algorithms.
+"""
+
+import asyncio
+import logging
+import time
+from typing import Any, Dict, List, Optional, Union, Callable
+from pathlib import Path
+from dataclasses import dataclass
+from abc import ABC, abstractmethod
+
+from .config import Config, DEFAULT_CONFIG
+from .models import DataModel, ResultModel, ValidationError
+from .utils import validate_input, timing_decorator, format_output
+
+logger = logging.getLogger(__name__)
+
+
+class ProcessingError(Exception):
+    """Raised when data processing fails."""
+    
+    def __init__(self, message: str, error_code: int = 500, details: Optional[Dict] = None):
+        super().__init__(message)
+        self.error_code = error_code
+        self.details = details or {}
+        self.timestamp = time.time()
+
+
+class BaseProcessor(ABC):
+    """
+    Abstract base class for all data processors.
+    
+    This class defines the interface that all processors must implement
+    and provides common functionality for error handling and logging.
+    """
+    
+    def __init__(self, config: Optional[Config] = None):
+        """
+        Initialize the processor with configuration.
+        
+        Args:
+            config: Configuration object, uses defaults if None
+        """
+        self.config = config or Config()
+        self.logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
+        self._setup_processor()
+    
+    def _setup_processor(self) -> None:
+        """Set up processor-specific configuration."""
+        if self.config.debug:
+            self.logger.setLevel(logging.DEBUG)
+            self.logger.debug(f"Initialized {self.__class__.__name__} in debug mode")
+    
+    @abstractmethod
+    def process(self, data: Any) -> Any:
+        """
+        Process input data and return results.
+        
+        Args:
+            data: Input data to process
+            
+        Returns:
+            Processed data
+            
+        Raises:
+            ProcessingError: If processing fails
+        """
+        pass
+    
+    @abstractmethod
+    def validate_input(self, data: Any) -> bool:
+        """
+        Validate input data format and content.
+        
+        Args:
+            data: Data to validate
+            
+        Returns:
+            True if valid, False otherwise
+        """
+        pass
+    
+    def get_status(self) -> Dict[str, Any]:
+        """Get current processor status."""
+        return {
+            "class": self.__class__.__name__,
+            "config": self.config.to_dict(),
+            "debug": self.config.debug,
+            "timestamp": time.time()
+        }
+
+
+class SampleProcessor(BaseProcessor):
+    """
+    Main processor class for handling various data processing tasks.
+    
+    This processor can handle different types of input data and apply
+    various transformations based on configuration settings.
+    
+    Attributes:
+        processed_count: Number of items processed
+        error_count: Number of processing errors
+        
+    Example:
+        >>> config = Config(debug=True, max_items=100)
+        >>> processor = SampleProcessor(config)
+        >>> result = processor.process("Hello World")
+        >>> print(result.content)
+        Processed: Hello World
+    """
+    
+    def __init__(self, config: Optional[Config] = None):
+        super().__init__(config)
+        self.processed_count = 0
+        self.error_count = 0
+        self._cache = {}
+        self._processors = self._initialize_processors()
+    
+    def _initialize_processors(self) -> Dict[str, Callable]:
+        """Initialize specialized processors for different data types."""
+        return {
+            'string': self._process_string,
+            'number': self._process_number,
+            'list': self._process_list,
+            'dict': self._process_dict,
+            'model': self._process_data_model,
+        }
+    
+    def process(self, data: Any) -> ResultModel:
+        """
+        Process input data and return a ResultModel.
+        
+        Args:
+            data: Input data of any supported type
+            
+        Returns:
+            ResultModel containing processed data and metadata
+            
+        Raises:
+            ProcessingError: If processing fails
+            ValidationError: If input validation fails
+        """
+        start_time = time.time()
+        
+        try:
+            # Validate input
+            if not self.validate_input(data):
+                raise ValidationError(f"Invalid input data: {type(data)}")
+            
+            # Check cache if enabled
+            if self.config.cache_enabled:
+                cache_key = self._generate_cache_key(data)
+                if cache_key in self._cache:
+                    self.logger.debug(f"Returning cached result for key: {cache_key}")
+                    return self._cache[cache_key]
+            
+            # Determine data type and process
+            data_type = self._determine_data_type(data)
+            processor_func = self._processors.get(data_type, self._process_generic)
+            
+            processed_data = processor_func(data)
+            
+            # Create result model
+            result = ResultModel(
+                success=True,
+                content=processed_data,
+                metadata={
+                    'input_type': data_type,
+                    'processor': self.__class__.__name__,
+                    'processing_time': time.time() - start_time,
+                    'config': self.config.to_dict()
+                }
+            )
+            
+            # Cache result if enabled
+            if self.config.cache_enabled:
+                self._cache[cache_key] = result
+            
+            self.processed_count += 1
+            return result
+            
+        except Exception as e:
+            self.error_count += 1
+            self.logger.error(f"Processing failed: {e}")
+            raise ProcessingError(f"Failed to process data: {e}")
+    
+    def process_data_model(self, model: DataModel) -> ResultModel:
+        """
+        Process a DataModel instance with specialized handling.
+        
+        Args:
+            model: DataModel instance to process
+            
+        Returns:
+            ResultModel with processed model data
+        """
+        return self.process(model)
+    
+    async def process_async(self, data: Any) -> ResultModel:
+        """
+        Asynchronously process data.
+        
+        Args:
+            data: Input data to process
+            
+        Returns:
+            ResultModel containing processed data
+        """
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.process, data)
+    
+    def process_batch(self, data_list: List[Any]) -> List[ResultModel]:
+        """
+        Process multiple items in batch.
+        
+        Args:
+            data_list: List of data items to process
+            
+        Returns:
+            List of ResultModel instances
+        """
+        results = []
+        max_items = self.config.max_items
+        
+        for i, data in enumerate(data_list[:max_items]):
+            try:
+                result = self.process(data)
+                results.append(result)
+            except Exception as e:
+                self.logger.warning(f"Failed to process item {i}: {e}")
+                # Add failed result
+                results.append(ResultModel(
+                    success=False,
+                    error=str(e),
+                    metadata={'item_index': i}
+                ))
+        
+        return results
+    
+    def validate_input(self, data: Any) -> bool:
+        """Validate input data."""
+        if data is None:
+            return False
+        
+        # Check size limits for collections
+        if isinstance(data, (list, dict, str)):
+            if len(data) > self.config.max_size:
+                return False
+        
+        return True
+    
+    def _determine_data_type(self, data: Any) -> str:
+        """Determine the type category of input data."""
+        if isinstance(data, str):
+            return 'string'
+        elif isinstance(data, (int, float)):
+            return 'number'
+        elif isinstance(data, list):
+            return 'list'
+        elif isinstance(data, dict):
+            return 'dict'
+        elif isinstance(data, DataModel):
+            return 'model'
+        else:
+            return 'generic'
+    
+    def _process_string(self, data: str) -> str:
+        """Process string data."""
+        if self.config.uppercase:
+            data = data.upper()
+        return f"Processed: {data}"
+    
+    def _process_number(self, data: Union[int, float]) -> Union[int, float]:
+        """Process numeric data."""
+        if self.config.multiply_factor:
+            data *= self.config.multiply_factor
+        return data
+    
+    def _process_list(self, data: List[Any]) -> List[Any]:
+        """Process list data."""
+        processed = []
+        for item in data[:self.config.max_items]:
+            if isinstance(item, str):
+                processed.append(self._process_string(item))
+            else:
+                processed.append(item)
+        return processed
+    
+    def _process_dict(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Process dictionary data."""
+        processed = {}
+        for key, value in data.items():
+            if isinstance(value, str):
+                processed[key] = self._process_string(value)
+            else:
+                processed[key] = value
+        return processed
+    
+    def _process_data_model(self, data: DataModel) -> Dict[str, Any]:
+        """Process DataModel instances."""
+        return {
+            'name': self._process_string(data.name),
+            'value': self._process_number(data.value),
+            'metadata': data.metadata,
+            'processed_timestamp': time.time()
+        }
+    
+    def _process_generic(self, data: Any) -> str:
+        """Generic processor for unknown data types."""
+        return f"Generic processing: {str(data)}"
+    
+    def _generate_cache_key(self, data: Any) -> str:
+        """Generate a cache key for input data."""
+        return f"{type(data).__name__}_{hash(str(data))}"
+    
+    @timing_decorator
+    def get_statistics(self) -> Dict[str, Any]:
+        """Get processing statistics."""
+        return {
+            'processed_count': self.processed_count,
+            'error_count': self.error_count,
+            'cache_size': len(self._cache),
+            'success_rate': (
+                self.processed_count / (self.processed_count + self.error_count)
+                if (self.processed_count + self.error_count) > 0 else 0.0
+            )
+        }
+    
+    def clear_cache(self) -> None:
+        """Clear the processing cache."""
+        self._cache.clear()
+        self.logger.info("Processing cache cleared")
+    
+    def reset_counters(self) -> None:
+        """Reset processing counters."""
+        self.processed_count = 0
+        self.error_count = 0
+        self.logger.info("Processing counters reset")
+
+
+class DataProcessor(BaseProcessor):
+    """
+    Specialized processor for structured data operations.
+    
+    This processor focuses on transforming structured data formats
+    and provides utilities for data validation and conversion.
+    """
+    
+    def __init__(self, config: Optional[Config] = None):
+        super().__init__(config)
+        self.supported_formats = ['json', 'yaml', 'xml', 'csv']
+    
+    def process(self, data: Any) -> Dict[str, Any]:
+        """Process structured data."""
+        if not self.validate_input(data):
+            raise ValidationError("Invalid structured data")
+        
+        return {
+            'original': data,
+            'processed': self._transform_data(data),
+            'format': self._detect_format(data),
+            'timestamp': time.time()
+        }
+    
+    def validate_input(self, data: Any) -> bool:
+        """Validate structured data input."""
+        return isinstance(data, (dict, list)) and len(str(data)) <= self.config.max_size
+    
+    def _transform_data(self, data: Any) -> Any:
+        """Apply data transformations."""
+        if isinstance(data, dict):
+            return {k.upper() if isinstance(k, str) else k: v for k, v in data.items()}
+        elif isinstance(data, list):
+            return [item.upper() if isinstance(item, str) else item for item in data]
+        return data
+    
+    def _detect_format(self, data: Any) -> str:
+        """Detect the format of structured data."""
+        if isinstance(data, dict):
+            return 'json-like'
+        elif isinstance(data, list):
+            return 'array-like'
+        return 'unknown'
+
+
+# Factory function for creating processors
+def create_processor(processor_type: str = "sample", config: Optional[Config] = None) -> BaseProcessor:
+    """
+    Factory function to create different types of processors.
+    
+    Args:
+        processor_type: Type of processor to create ("sample", "data")
+        config: Configuration for the processor
+        
+    Returns:
+        Processor instance
+        
+    Raises:
+        ValueError: If processor_type is unknown
+        
+    Example:
+        >>> processor = create_processor("sample", Config(debug=True))
+        >>> isinstance(processor, SampleProcessor)
+        True
+    """
+    processors = {
+        'sample': SampleProcessor,
+        'data': DataProcessor,
+    }
+    
+    if processor_type not in processors:
+        raise ValueError(f"Unknown processor type: {processor_type}")
+    
+    return processors[processor_type](config)
+
+
+# Convenience function for quick processing
+def quick_process(data: Any, processor_type: str = "sample", **config_kwargs) -> ResultModel:
+    """
+    Quickly process data with default configuration.
+    
+    Args:
+        data: Data to process
+        processor_type: Type of processor to use
+        **config_kwargs: Configuration options
+        
+    Returns:
+        Processing result
+    """
+    config = Config(**config_kwargs)
+    processor = create_processor(processor_type, config)
+    return processor.process(data)
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/sample_project\sample_project\models.py
+"""
+Data models and schemas for the Sample Project.
+
+This module defines the core data structures, validation logic,
+and serialization methods used throughout the application.
+"""
+
+import json
+import time
+from dataclasses import dataclass, field, asdict
+from typing import Any, Dict, List, Optional, Union, Type
+from enum import Enum, auto
+from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class ValidationError(Exception):
+    """Raised when data validation fails."""
+    
+    def __init__(self, message: str, field: Optional[str] = None, value: Any = None):
+        super().__init__(message)
+        self.field = field
+        self.value = value
+        self.timestamp = time.time()
+
+
+class ProcessingStatus(Enum):
+    """Enumeration of processing status values."""
+    PENDING = auto()
+    IN_PROGRESS = auto()
+    COMPLETED = auto()
+    FAILED = auto()
+    CANCELLED = auto()
+
+
+class Priority(Enum):
+    """Task priority levels."""
+    LOW = 1
+    NORMAL = 2
+    HIGH = 3
+    CRITICAL = 4
+
+
+@dataclass
+class BaseModel:
+    """
+    Base class for all data models with common functionality.
+    
+    Provides validation, serialization, and utility methods
+    that are inherited by all specific model classes.
+    """
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=datetime.now)
+    
+    def validate(self) -> bool:
+        """
+        Validate the model instance.
+        
+        Returns:
+            True if validation passes
+            
+        Raises:
+            ValidationError: If validation fails
+        """
+        # Update the updated_at timestamp
+        self.updated_at = datetime.now()
+        return True
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert model to dictionary representation.
+        
+        Returns:
+            Dictionary representation of the model
+        """
+        return asdict(self)
+    
+    def to_json(self, indent: int = 2) -> str:
+        """
+        Convert model to JSON string.
+        
+        Args:
+            indent: JSON indentation level
+            
+        Returns:
+            JSON string representation
+        """
+        return json.dumps(self.to_dict(), indent=indent, default=str)
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'BaseModel':
+        """
+        Create model instance from dictionary.
+        
+        Args:
+            data: Dictionary containing model data
+            
+        Returns:
+            New model instance
+        """
+        # Filter only fields that exist in the dataclass
+        valid_fields = {f.name for f in cls.__dataclass_fields__}
+        filtered_data = {k: v for k, v in data.items() if k in valid_fields}
+        return cls(**filtered_data)
+    
+    @classmethod
+    def from_json(cls, json_str: str) -> 'BaseModel':
+        """
+        Create model instance from JSON string.
+        
+        Args:
+            json_str: JSON string containing model data
+            
+        Returns:
+            New model instance
+        """
+        try:
+            data = json.loads(json_str)
+            return cls.from_dict(data)
+        except json.JSONDecodeError as e:
+            raise ValidationError(f"Invalid JSON: {e}")
+    
+    def update(self, **kwargs) -> None:
+        """
+        Update model fields with new values.
+        
+        Args:
+            **kwargs: Field values to update
+        """
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+        self.updated_at = datetime.now()
+    
+    def copy(self) -> 'BaseModel':
+        """Create a copy of the model instance."""
+        return self.__class__.from_dict(self.to_dict())
+
+
+@dataclass
+class DataModel(BaseModel):
+    """
+    Primary data model for representing business entities.
+    
+    This model represents the core data structure used throughout
+    the application for processing and storage.
+    
+    Attributes:
+        name: Entity name (required)
+        value: Numeric value associated with the entity
+        description: Optional description text
+        tags: List of tags for categorization
+        metadata: Additional metadata as key-value pairs
+        is_active: Whether the entity is currently active
+        priority: Priority level for processing
+        
+    Example:
+        >>> model = DataModel(
+        ...     name="test_entity",
+        ...     value=42,
+        ...     description="A test entity",
+        ...     tags=["test", "example"]
+        ... )
+        >>> model.validate()
+        True
+        >>> model.name
+        'test_entity'
+    """
+    name: str
+    value: Union[int, float] = 0
+    description: Optional[str] = None
+    tags: List[str] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    is_active: bool = True
+    priority: Priority = Priority.NORMAL
+    
+    def validate(self) -> bool:
+        """
+        Validate DataModel instance.
+        
+        Returns:
+            True if validation passes
+            
+        Raises:
+            ValidationError: If validation fails
+        """
+        super().validate()
+        
+        # Name validation
+        if not self.name or not isinstance(self.name, str):
+            raise ValidationError("Name is required and must be a string", "name", self.name)
+        
+        if len(self.name.strip()) == 0:
+            raise ValidationError("Name cannot be empty", "name", self.name)
+        
+        if len(self.name) > 100:
+            raise ValidationError("Name must be 100 characters or less", "name", self.name)
+        
+        # Value validation
+        if not isinstance(self.value, (int, float)):
+            raise ValidationError("Value must be numeric", "value", self.value)
+        
+        # Tags validation
+        if not isinstance(self.tags, list):
+            raise ValidationError("Tags must be a list", "tags", self.tags)
+        
+        for tag in self.tags:
+            if not isinstance(tag, str):
+                raise ValidationError("All tags must be strings", "tags", tag)
+        
+        # Metadata validation
+        if not isinstance(self.metadata, dict):
+            raise ValidationError("Metadata must be a dictionary", "metadata", self.metadata)
+        
+        return True
+    
+    def add_tag(self, tag: str) -> None:
+        """Add a tag to the model."""
+        if isinstance(tag, str) and tag not in self.tags:
+            self.tags.append(tag)
+            self.update()
+    
+    def remove_tag(self, tag: str) -> None:
+        """Remove a tag from the model."""
+        if tag in self.tags:
+            self.tags.remove(tag)
+            self.update()
+    
+    def has_tag(self, tag: str) -> bool:
+        """Check if model has a specific tag."""
+        return tag in self.tags
+    
+    def set_metadata(self, key: str, value: Any) -> None:
+        """Set a metadata key-value pair."""
+        self.metadata[key] = value
+        self.update()
+    
+    def get_metadata(self, key: str, default: Any = None) -> Any:
+        """Get a metadata value by key."""
+        return self.metadata.get(key, default)
+    
+    def calculate_score(self) -> float:
+        """
+        Calculate a composite score based on model attributes.
+        
+        Returns:
+            Calculated score as float
+        """
+        base_score = float(self.value)
+        
+        # Priority multiplier
+        priority_multiplier = {
+            Priority.LOW: 0.8,
+            Priority.NORMAL: 1.0,
+            Priority.HIGH: 1.2,
+            Priority.CRITICAL: 1.5
+        }
+        
+        score = base_score * priority_multiplier.get(self.priority, 1.0)
+        
+        # Tag bonus
+        tag_bonus = len(self.tags) * 0.1
+        score += tag_bonus
+        
+        # Active bonus
+        if self.is_active:
+            score *= 1.1
+        
+        return round(score, 2)
+
+
+@dataclass
+class ResultModel(BaseModel):
+    """
+    Model for representing processing results.
+    
+    This model encapsulates the results of data processing operations,
+    including success status, content, and metadata.
+    
+    Attributes:
+        success: Whether the operation was successful
+        content: The processed content/data
+        error: Error message if operation failed
+        metadata: Additional metadata about the operation
+        status: Processing status
+        execution_time: Time taken for processing (seconds)
+        
+    Example:
+        >>> result = ResultModel(
+        ...     success=True,
+        ...     content="Processed data",
+        ...     metadata={"processor": "SampleProcessor"}
+        ... )
+        >>> result.success
+        True
+    """
+    success: bool
+    content: Any = None
+    error: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    status: ProcessingStatus = ProcessingStatus.COMPLETED
+    execution_time: Optional[float] = None
+    
+    def validate(self) -> bool:
+        """Validate ResultModel instance."""
+        super().validate()
+        
+        # If not successful, should have error message
+        if not self.success and not self.error:
+            raise ValidationError("Failed results must include an error message")
+        
+        # If successful, should have content (unless explicitly None)
+        if self.success and self.content is None and self.status == ProcessingStatus.COMPLETED:
+            logger.warning("Successful result has None content")
+        
+        return True
+    
+    def is_success(self) -> bool:
+        """Check if the result represents a successful operation."""
+        return self.success and self.status != ProcessingStatus.FAILED
+    
+    def get_content_summary(self, max_length: int = 100) -> str:
+        """
+        Get a summary of the content.
+        
+        Args:
+            max_length: Maximum length of summary
+            
+        Returns:
+            Content summary string
+        """
+        if self.content is None:
+            return "No content"
+        
+        content_str = str(self.content)
+        if len(content_str) <= max_length:
+            return content_str
+        
+        return content_str[:max_length] + "..."
+    
+    def add_metadata(self, key: str, value: Any) -> None:
+        """Add metadata key-value pair."""
+        self.metadata[key] = value
+        self.update()
+
+
+@dataclass
+class ConfigModel(BaseModel):
+    """
+    Model for configuration settings.
+    
+    This model represents configuration options that can be
+    persisted and loaded for application settings.
+    
+    Attributes:
+        debug: Debug mode flag
+        max_items: Maximum number of items to process
+        max_size: Maximum size limit for data
+        timeout: Timeout in seconds
+        cache_enabled: Whether caching is enabled
+        log_level: Logging level
+        custom_settings: Additional custom settings
+        
+    Example:
+        >>> config = ConfigModel(debug=True, max_items=50)
+        >>> config.debug
+        True
+        >>> config.get_log_level()
+        'INFO'
+    """
+    debug: bool = False
+    max_items: int = 100
+    max_size: int = 10000
+    timeout: int = 30
+    cache_enabled: bool = True
+    log_level: str = "INFO"
+    custom_settings: Dict[str, Any] = field(default_factory=dict)
+    
+    def validate(self) -> bool:
+        """Validate ConfigModel instance."""
+        super().validate()
+        
+        if self.max_items <= 0:
+            raise ValidationError("max_items must be positive", "max_items", self.max_items)
+        
+        if self.max_size <= 0:
+            raise ValidationError("max_size must be positive", "max_size", self.max_size)
+        
+        if self.timeout <= 0:
+            raise ValidationError("timeout must be positive", "timeout", self.timeout)
+        
+        valid_log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+        if self.log_level.upper() not in valid_log_levels:
+            raise ValidationError(
+                f"log_level must be one of {valid_log_levels}", 
+                "log_level", 
+                self.log_level
+            )
+        
+        return True
+    
+    def get_log_level(self) -> str:
+        """Get the log level in uppercase."""
+        return self.log_level.upper()
+    
+    def is_debug_mode(self) -> bool:
+        """Check if debug mode is enabled."""
+        return self.debug or self.get_log_level() == "DEBUG"
+    
+    def set_custom_setting(self, key: str, value: Any) -> None:
+        """Set a custom configuration setting."""
+        self.custom_settings[key] = value
+        self.update()
+    
+    def get_custom_setting(self, key: str, default: Any = None) -> Any:
+        """Get a custom configuration setting."""
+        return self.custom_settings.get(key, default)
+
+
+@dataclass
+class TaskModel(BaseModel):
+    """
+    Model for representing processing tasks.
+    
+    This model represents individual tasks that can be queued,
+    processed, and tracked through their lifecycle.
+    
+    Attributes:
+        id: Unique task identifier
+        name: Task name/description
+        data: Task input data
+        status: Current task status
+        priority: Task priority level
+        result: Task processing result
+        error_count: Number of processing errors
+        max_retries: Maximum retry attempts
+        
+    Example:
+        >>> task = TaskModel(
+        ...     id="task_123",
+        ...     name="Process data",
+        ...     data={"key": "value"}
+        ... )
+        >>> task.can_retry()
+        True
+    """
+    id: str
+    name: str
+    data: Any = None
+    status: ProcessingStatus = ProcessingStatus.PENDING
+    priority: Priority = Priority.NORMAL
+    result: Optional[ResultModel] = None
+    error_count: int = 0
+    max_retries: int = 3
+    
+    def validate(self) -> bool:
+        """Validate TaskModel instance."""
+        super().validate()
+        
+        if not self.id or not isinstance(self.id, str):
+            raise ValidationError("Task ID is required", "id", self.id)
+        
+        if not self.name or not isinstance(self.name, str):
+            raise ValidationError("Task name is required", "name", self.name)
+        
+        if self.error_count < 0:
+            raise ValidationError("Error count cannot be negative", "error_count", self.error_count)
+        
+        if self.max_retries < 0:
+            raise ValidationError("Max retries cannot be negative", "max_retries", self.max_retries)
+        
+        return True
+    
+    def can_retry(self) -> bool:
+        """Check if the task can be retried."""
+        return (
+            self.status == ProcessingStatus.FAILED and 
+            self.error_count < self.max_retries
+        )
+    
+    def mark_in_progress(self) -> None:
+        """Mark task as in progress."""
+        self.status = ProcessingStatus.IN_PROGRESS
+        self.update()
+    
+    def mark_completed(self, result: ResultModel) -> None:
+        """Mark task as completed with result."""
+        self.status = ProcessingStatus.COMPLETED
+        self.result = result
+        self.update()
+    
+    def mark_failed(self, error_message: str) -> None:
+        """Mark task as failed with error."""
+        self.status = ProcessingStatus.FAILED
+        self.error_count += 1
+        if not self.result:
+            self.result = ResultModel(success=False, error=error_message)
+        else:
+            self.result.error = error_message
+        self.update()
+    
+    def get_priority_score(self) -> int:
+        """Get numeric priority score for sorting."""
+        return self.priority.value
+
+
+# Model registry for dynamic model creation
+MODEL_REGISTRY: Dict[str, Type[BaseModel]] = {
+    'data': DataModel,
+    'result': ResultModel,
+    'config': ConfigModel,
+    'task': TaskModel,
+}
+
+
+def create_model(model_type: str, **kwargs) -> BaseModel:
+    """
+    Factory function to create model instances by type.
+    
+    Args:
+        model_type: Type of model to create
+        **kwargs: Model initialization parameters
+        
+    Returns:
+        New model instance
+        
+    Raises:
+        ValueError: If model_type is unknown
+        
+    Example:
+        >>> model = create_model('data', name='test', value=42)
+        >>> isinstance(model, DataModel)
+        True
+    """
+    if model_type not in MODEL_REGISTRY:
+        raise ValueError(f"Unknown model type: {model_type}")
+    
+    model_class = MODEL_REGISTRY[model_type]
+    return model_class(**kwargs)
+
+
+def validate_models(models: List[BaseModel]) -> List[ValidationError]:
+    """
+    Validate multiple models and return any validation errors.
+    
+    Args:
+        models: List of models to validate
+        
+    Returns:
+        List of validation errors (empty if all valid)
+    """
+    errors = []
+    
+    for i, model in enumerate(models):
+        try:
+            model.validate()
+        except ValidationError as e:
+            e.model_index = i
+            e.model_type = type(model).__name__
+            errors.append(e)
+    
+    return errors
+
+
+def serialize_models(models: List[BaseModel]) -> List[Dict[str, Any]]:
+    """
+    Serialize a list of models to dictionaries.
+    
+    Args:
+        models: List of models to serialize
+        
+    Returns:
+        List of model dictionaries
+    """
+    return [model.to_dict() for model in models]
+
+
+# Utility functions for model manipulation
+def filter_models_by_status(models: List[TaskModel], status: ProcessingStatus) -> List[TaskModel]:
+    """Filter task models by status."""
+    return [model for model in models if model.status == status]
+
+
+def sort_models_by_priority(models: List[TaskModel], descending: bool = True) -> List[TaskModel]:
+    """Sort task models by priority."""
+    return sorted(models, key=lambda x: x.get_priority_score(), reverse=descending)
+
+
+def find_model_by_id(models: List[TaskModel], task_id: str) -> Optional[TaskModel]:
+    """Find a task model by ID."""
+    return next((model for model in models if model.id == task_id), None)
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/sample_project\sample_project\utils.py
+"""
+Utility functions and decorators for the Sample Project.
+
+This module provides common utilities, helper functions, decorators,
+and validation tools used throughout the project.
+"""
+
+import functools
+import json
+import re
+import time
+from typing import Any, Callable, Dict, List, Optional, Union
+from pathlib import Path
+import logging
+from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
+
+# Constants
+EMAIL_PATTERN = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+URL_PATTERN = re.compile(r'^https?://(?:[-\w.])+(?:[:\d]+)?(?:/(?:[\w/_.])*)?(?:\?(?:[\w&=%.])*)?(?:#(?:\w*))?$')
+PHONE_PATTERN = re.compile(r'^\+?1?-?\s?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})$')
+
+# Type aliases
+ValidatorFunction = Callable[[Any], bool]
+FormatterFunction = Callable[[Any], str]
+
+
+def timing_decorator(func: Callable) -> Callable:
+    """
+    Decorator to measure and log function execution time.
+    
+    Args:
+        func: Function to be timed
+        
+    Returns:
+        Wrapped function that logs execution time
+        
+    Example:
+        >>> @timing_decorator
+        ... def slow_function():
+        ...     time.sleep(0.1)
+        ...     return "done"
+        >>> result = slow_function()  # Logs execution time
+        >>> result
+        'done'
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        try:
+            result = func(*args, **kwargs)
+            execution_time = time.time() - start_time
+            logger.debug(f"{func.__name__} executed in {execution_time:.4f} seconds")
+            return result
+        except Exception as e:
+            execution_time = time.time() - start_time
+            logger.error(f"{func.__name__} failed after {execution_time:.4f} seconds: {e}")
+            raise
+    return wrapper
+
+
+def retry_decorator(max_attempts: int = 3, delay: float = 1.0, backoff: float = 2.0):
+    """
+    Decorator for retrying function calls with exponential backoff.
+    
+    Args:
+        max_attempts: Maximum number of retry attempts
+        delay: Initial delay between retries in seconds
+        backoff: Multiplier for delay after each attempt
+        
+    Returns:
+        Decorator function
+        
+    Example:
+        >>> @retry_decorator(max_attempts=3, delay=0.1)
+        ... def flaky_function():
+        ...     import random
+        ...     if random.random() < 0.7:
+        ...         raise ValueError("Random failure")
+        ...     return "success"
+        >>> result = flaky_function()  # Will retry up to 3 times
+    """
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            current_delay = delay
+            last_exception = None
+            
+            for attempt in range(max_attempts):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+                    if attempt == max_attempts - 1:  # Last attempt
+                        break
+                    
+                    logger.warning(f"{func.__name__} attempt {attempt + 1} failed: {e}. Retrying in {current_delay}s")
+                    time.sleep(current_delay)
+                    current_delay *= backoff
+            
+            logger.error(f"{func.__name__} failed after {max_attempts} attempts")
+            raise last_exception
+        return wrapper
+    return decorator
+
+
+def cache_decorator(ttl_seconds: int = 300):
+    """
+    Simple caching decorator with TTL (Time To Live).
+    
+    Args:
+        ttl_seconds: Cache TTL in seconds
+        
+    Returns:
+        Decorator function
+        
+    Example:
+        >>> @cache_decorator(ttl_seconds=60)
+        ... def expensive_function(x):
+        ...     time.sleep(1)  # Simulate expensive operation
+        ...     return x * 2
+        >>> result1 = expensive_function(5)  # Takes ~1 second
+        >>> result2 = expensive_function(5)  # Returns immediately from cache
+    """
+    def decorator(func: Callable) -> Callable:
+        cache = {}
+        
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # Create cache key
+            key = str(args) + str(sorted(kwargs.items()))
+            current_time = time.time()
+            
+            # Check if cached result is still valid
+            if key in cache:
+                result, timestamp = cache[key]
+                if current_time - timestamp < ttl_seconds:
+                    logger.debug(f"Cache hit for {func.__name__}")
+                    return result
+                else:
+                    del cache[key]  # Remove expired entry
+            
+            # Call function and cache result
+            result = func(*args, **kwargs)
+            cache[key] = (result, current_time)
+            logger.debug(f"Cache miss for {func.__name__}, result cached")
+            return result
+        
+        # Add cache management methods
+        wrapper.clear_cache = lambda: cache.clear()
+        wrapper.cache_info = lambda: {"size": len(cache), "ttl": ttl_seconds}
+        return wrapper
+    return decorator
+
+
+def validate_input(data: Any, validators: Optional[List[ValidatorFunction]] = None) -> bool:
+    """
+    Validate input data using a list of validator functions.
+    
+    Args:
+        data: Data to validate
+        validators: List of validator functions
+        
+    Returns:
+        True if all validations pass, False otherwise
+        
+    Example:
+        >>> def is_string(x): return isinstance(x, str)
+        >>> def min_length(x): return len(x) >= 3
+        >>> validate_input("hello", [is_string, min_length])
+        True
+        >>> validate_input("hi", [is_string, min_length])
+        False
+    """
+    if validators is None:
+        return True
+    
+    for validator in validators:
+        try:
+            if not validator(data):
+                return False
+        except Exception as e:
+            logger.warning(f"Validator {validator.__name__} raised exception: {e}")
+            return False
+    
+    return True
+
+
+def validate_email(email: str) -> bool:
+    """
+    Validate email address format.
+    
+    Args:
+        email: Email address string
+        
+    Returns:
+        True if valid email format
+        
+    Example:
+        >>> validate_email("user@example.com")
+        True
+        >>> validate_email("invalid-email")
+        False
+    """
+    return bool(EMAIL_PATTERN.match(email)) if isinstance(email, str) else False
+
+
+def validate_url(url: str) -> bool:
+    """
+    Validate URL format.
+    
+    Args:
+        url: URL string
+        
+    Returns:
+        True if valid URL format
+        
+    Example:
+        >>> validate_url("https://example.com")
+        True
+        >>> validate_url("not-a-url")
+        False
+    """
+    return bool(URL_PATTERN.match(url)) if isinstance(url, str) else False
+
+
+def validate_phone(phone: str) -> bool:
+    """
+    Validate US phone number format.
+    
+    Args:
+        phone: Phone number string
+        
+    Returns:
+        True if valid phone format
+        
+    Example:
+        >>> validate_phone("(555) 123-4567")
+        True
+        >>> validate_phone("555-1234")
+        False
+    """
+    return bool(PHONE_PATTERN.match(phone)) if isinstance(phone, str) else False
+
+
+def format_output(data: Any, format_type: str = "json", indent: int = 2) -> str:
+    """
+    Format data for output in various formats.
+    
+    Args:
+        data: Data to format
+        format_type: Output format ("json", "yaml", "pretty", "csv")
+        indent: Indentation level for formatted output
+        
+    Returns:
+        Formatted string
+        
+    Example:
+        >>> data = {"name": "test", "value": 42}
+        >>> formatted = format_output(data, "json")
+        >>> "name" in formatted and "value" in formatted
+        True
+    """
+    try:
+        if format_type == "json":
+            return json.dumps(data, indent=indent, ensure_ascii=False, default=str)
+        
+        elif format_type == "yaml":
+            try:
+                import yaml
+                return yaml.dump(data, default_flow_style=False, indent=indent)
+            except ImportError:
+                logger.warning("PyYAML not available, falling back to JSON")
+                return json.dumps(data, indent=indent)
+        
+        elif format_type == "pretty":
+            return _pretty_format(data, indent)
+        
+        elif format_type == "csv" and isinstance(data, (list, tuple)):
+            return _format_as_csv(data)
+        
+        else:
+            return str(data)
+    
+    except Exception as e:
+        logger.error(f"Failed to format output: {e}")
+        return str(data)
+
+
+def _pretty_format(data: Any, indent: int = 2) -> str:
+    """Format data in a pretty, human-readable format."""
+    def _format_recursive(obj, level=0):
+        prefix = " " * (level * indent)
+        
+        if isinstance(obj, dict):
+            if not obj:
+                return "{}"
+            lines = ["{"]
+            for key, value in obj.items():
+                formatted_value = _format_recursive(value, level + 1)
+                lines.append(f"{prefix}  {key}: {formatted_value}")
+            lines.append(f"{prefix}}}")
+            return "\n".join(lines)
+        
+        elif isinstance(obj, (list, tuple)):
+            if not obj:
+                return "[]"
+            lines = ["["]
+            for item in obj:
+                formatted_item = _format_recursive(item, level + 1)
+                lines.append(f"{prefix}  {formatted_item}")
+            lines.append(f"{prefix}]")
+            return "\n".join(lines)
+        
+        elif isinstance(obj, str):
+            return f'"{obj}"'
+        
+        else:
+            return str(obj)
+    
+    return _format_recursive(data)
+
+
+def _format_as_csv(data: List[Any]) -> str:
+    """Format list data as CSV."""
+    import csv
+    import io
+    
+    if not data:
+        return ""
+    
+    output = io.StringIO()
+    
+    # Handle list of dicts
+    if isinstance(data[0], dict):
+        fieldnames = data[0].keys()
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(data)
+    else:
+        # Handle list of values
+        writer = csv.writer(output)
+        for item in data:
+            if isinstance(item, (list, tuple)):
+                writer.writerow(item)
+            else:
+                writer.writerow([item])
+    
+    return output.getvalue()
+
+
+def sanitize_string(text: str, max_length: int = 1000, remove_html: bool = True) -> str:
+    """
+    Sanitize string input by removing dangerous characters and limiting length.
+    
+    Args:
+        text: Input text to sanitize
+        max_length: Maximum allowed length
+        remove_html: Whether to remove HTML tags
+        
+    Returns:
+        Sanitized string
+        
+    Example:
+        >>> sanitize_string("<script>alert('xss')</script>Hello", remove_html=True)
+        'Hello'
+    """
+    if not isinstance(text, str):
+        text = str(text)
+    
+    # Remove HTML tags if requested
+    if remove_html:
+        text = re.sub(r'<[^>]+>', '', text)
+    
+    # Remove potentially dangerous characters
+    text = re.sub(r'[<>\"\'&]', '', text)
+    
+    # Limit length
+    if len(text) > max_length:
+        text = text[:max_length] + "..."
+    
+    return text.strip()
+
+
+def deep_merge_dicts(dict1: Dict, dict2: Dict) -> Dict:
+    """
+    Deep merge two dictionaries.
+    
+    Args:
+        dict1: First dictionary
+        dict2: Second dictionary (takes precedence)
+        
+    Returns:
+        Merged dictionary
+        
+    Example:
+        >>> d1 = {"a": {"x": 1}, "b": 2}
+        >>> d2 = {"a": {"y": 2}, "c": 3}
+        >>> result = deep_merge_dicts(d1, d2)
+        >>> result["a"]["x"] == 1 and result["a"]["y"] == 2
+        True
+    """
+    result = dict1.copy()
+    
+    for key, value in dict2.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = deep_merge_dicts(result[key], value)
+        else:
+            result[key] = value
+    
+    return result
+
+
+def flatten_dict(d: Dict, parent_key: str = '', sep: str = '.') -> Dict:
+    """
+    Flatten a nested dictionary.
+    
+    Args:
+        d: Dictionary to flatten
+        parent_key: Parent key for recursion
+        sep: Separator for nested keys
+        
+    Returns:
+        Flattened dictionary
+        
+    Example:
+        >>> nested = {"a": {"b": {"c": 1}}, "d": 2}
+        >>> flat = flatten_dict(nested)
+        >>> flat["a.b.c"] == 1
+        True
+    """
+    items = []
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+
+@timing_decorator
+def safe_file_operation(filepath: Union[str, Path], operation: str, data: Any = None) -> Any:
+    """
+    Safely perform file operations with proper error handling.
+    
+    Args:
+        filepath: Path to the file
+        operation: Operation type ("read", "write", "append")
+        data: Data to write (for write operations)
+        
+    Returns:
+        File content for read operations, None for write operations
+        
+    Example:
+        >>> safe_file_operation("test.txt", "write", "Hello World")
+        >>> content = safe_file_operation("test.txt", "read")
+        >>> content.strip()
+        'Hello World'
+    """
+    filepath = Path(filepath)
+    
+    try:
+        if operation == "read":
+            if not filepath.exists():
+                raise FileNotFoundError(f"File not found: {filepath}")
+            return filepath.read_text(encoding='utf-8')
+        
+        elif operation == "write":
+            filepath.parent.mkdir(parents=True, exist_ok=True)
+            filepath.write_text(str(data), encoding='utf-8')
+            logger.info(f"Successfully wrote to {filepath}")
+        
+        elif operation == "append":
+            filepath.parent.mkdir(parents=True, exist_ok=True)
+            with open(filepath, 'a', encoding='utf-8') as f:
+                f.write(str(data))
+            logger.info(f"Successfully appended to {filepath}")
+        
+        else:
+            raise ValueError(f"Unknown operation: {operation}")
+    
+    except Exception as e:
+        logger.error(f"File operation failed: {e}")
+        raise
+
+
+def calculate_file_hash(filepath: Union[str, Path], algorithm: str = "sha256") -> str:
+    """
+    Calculate hash of a file.
+    
+    Args:
+        filepath: Path to the file
+        algorithm: Hash algorithm ("md5", "sha1", "sha256")
+        
+    Returns:
+        Hex digest of the file hash
+        
+    Example:
+        >>> hash_value = calculate_file_hash("test.txt")
+        >>> len(hash_value) == 64  # SHA256 produces 64 character hex string
+        True
+    """
+    import hashlib
+    
+    filepath = Path(filepath)
+    if not filepath.exists():
+        raise FileNotFoundError(f"File not found: {filepath}")
+    
+    hash_obj = getattr(hashlib, algorithm)()
+    
+    with open(filepath, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_obj.update(chunk)
+    
+    return hash_obj.hexdigest()
+
+
+class PerformanceMonitor:
+    """
+    Context manager for monitoring performance metrics.
+    
+    Example:
+        >>> with PerformanceMonitor("test_operation") as monitor:
+        ...     time.sleep(0.1)  # Simulate work
+        ...     monitor.add_metric("items_processed", 42)
+        >>> monitor.get_results()["duration"] > 0
+        True
+    """
+    
+    def __init__(self, operation_name: str):
+        self.operation_name = operation_name
+        self.start_time = None
+        self.end_time = None
+        self.metrics = {}
+    
+    def __enter__(self):
+        self.start_time = time.time()
+        logger.debug(f"Starting performance monitoring for: {self.operation_name}")
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.end_time = time.time()
+        duration = self.end_time - self.start_time
+        
+        if exc_type is None:
+            logger.info(f"{self.operation_name} completed in {duration:.4f} seconds")
+        else:
+            logger.error(f"{self.operation_name} failed after {duration:.4f} seconds")
+        
+        self.metrics['duration'] = duration
+        self.metrics['success'] = exc_type is None
+        self.metrics['timestamp'] = self.end_time
+    
+    def add_metric(self, name: str, value: Any) -> None:
+        """Add a custom metric."""
+        self.metrics[name] = value
+    
+    def get_results(self) -> Dict[str, Any]:
+        """Get all performance metrics."""
+        return {
+            'operation': self.operation_name,
+            **self.metrics
+        }
+
+
+# Factory for creating common validators
+def create_validators(
+    min_length: Optional[int] = None,
+    max_length: Optional[int] = None,
+    pattern: Optional[str] = None,
+    allowed_types: Optional[List[type]] = None
+) -> List[ValidatorFunction]:
+    """
+    Create a list of common validators.
+    
+    Args:
+        min_length: Minimum length requirement
+        max_length: Maximum length requirement  
+        pattern: Regex pattern to match
+        allowed_types: List of allowed types
+        
+    Returns:
+        List of validator functions
+        
+    Example:
+        >>> validators = create_validators(min_length=3, max_length=10, allowed_types=[str])
+        >>> validate_input("hello", validators)
+        True
+        >>> validate_input("hi", validators)
+        False
+    """
+    validators = []
+    
+    if allowed_types:
+        validators.append(lambda x: type(x) in allowed_types)
+    
+    if min_length is not None:
+        validators.append(lambda x: len(str(x)) >= min_length)
+    
+    if max_length is not None:
+        validators.append(lambda x: len(str(x)) <= max_length)
+    
+    if pattern:
+        compiled_pattern = re.compile(pattern)
+        validators.append(lambda x: bool(compiled_pattern.match(str(x))))
+    
+    return validators
+
+
+File: C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/sample_project\sample_project\__init__.py
+"""
+Sample Project - A comprehensive Python project for testing README generation.
+
+This package demonstrates various Python patterns and structures including:
+- Configuration management
+- CLI interfaces  
+- Data models
+- Utility functions
+- Core business logic
+- Entry points and scripts
+
+Features:
+- Configurable data processing pipeline
+- Command-line interface with multiple commands
+- Extensible plugin architecture
+- Comprehensive error handling
+- Type hints and documentation
+
+Usage:
+    >>> from sample_project import SampleProcessor
+    >>> processor = SampleProcessor()
+    >>> result = processor.process("Hello World")
+    >>> print(result)
+    Processed: Hello World
+
+Example:
+    Basic usage of the package:
+
+    ```
+    from sample_project import SampleProcessor, Config
+    from sample_project.models import DataModel
+
+    # Initialize with custom config
+    config = Config(debug=True, max_items=100)
+    processor = SampleProcessor(config)
+
+    # Process some data
+    data = DataModel(name="test", value=42)
+    result = processor.process_data_model(data)
+    ```
+"""
+
+from .main import SampleProcessor, DataProcessor, ProcessingError
+from .config import Config, load_config, save_config, DEFAULT_CONFIG
+from .models import DataModel, ResultModel, ValidationError
+from .utils import format_output, validate_input, timing_decorator
+
+# Package metadata
+__version__ = "1.2.3"
+__author__ = "John Developer"
+__email__ = "john.dev@example.com"
+__description__ = "A comprehensive sample Python project for testing README generation"
+__url__ = "https://github.com/example/sample-project"
+__license__ = "MIT"
+
+# Version info tuple
+__version_info__ = tuple(map(int, __version__.split('.')))
+
+# Package-level constants
+DEFAULT_TIMEOUT = 30
+MAX_RETRIES = 3
+SUPPORTED_FORMATS = ["json", "yaml", "xml", "csv"]
+
+# Main API exports
+__all__ = [
+    # Core classes
+    "SampleProcessor",
+    "DataProcessor", 
+    
+    # Configuration
+    "Config",
+    "load_config",
+    "save_config",
+    "DEFAULT_CONFIG",
+    
+    # Data models
+    "DataModel",
+    "ResultModel",
+    
+    # Utilities
+    "format_output",
+    "validate_input", 
+    "timing_decorator",
+    
+    # Exceptions
+    "ProcessingError",
+    "ValidationError",
+    
+    # Metadata
+    "__version__",
+    "__author__",
+    "__email__",
+    "__description__",
+    "__url__",
+    "__license__",
+    "__version_info__",
+    
+    # Constants
+    "DEFAULT_TIMEOUT",
+    "MAX_RETRIES", 
+    "SUPPORTED_FORMATS",
+]
+
+# Package initialization
+def get_version() -> str:
+    """Get the current package version."""
+    return __version__
+
+def get_package_info() -> dict:
+    """Get comprehensive package information."""
+    return {
+        "name": "sample-project",
+        "version": __version__,
+        "author": __author__,
+        "email": __email__,
+        "description": __description__,
+        "url": __url__,
+        "license": __license__,
+        "python_requires": ">=3.8",
+        "supported_formats": SUPPORTED_FORMATS,
+    }
+
+# Convenience function for quick setup
+def quick_setup(debug: bool = False, **kwargs) -> SampleProcessor:
+    """
+    Quickly set up a SampleProcessor with common defaults.
+    
+    Args:
+        debug: Enable debug mode
+        **kwargs: Additional configuration options
+        
+    Returns:
+        Configured SampleProcessor instance
+        
+    Example:
+        >>> processor = quick_setup(debug=True, max_items=50)
+        >>> isinstance(processor, SampleProcessor)
+        True
+    """
+    config = Config(debug=debug, **kwargs)
+    return SampleProcessor(config)
+
+# Module-level logger setup
+import logging
+
+def setup_logging(level: str = "INFO") -> None:
+    """Set up package-level logging configuration."""
+    numeric_level = getattr(logging, level.upper(), logging.INFO)
+    logging.basicConfig(
+        level=numeric_level,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    logging.getLogger(__name__).info(f"Sample Project v{__version__} initialized")
+
+# Auto-setup logging when package is imported
+setup_logging()
+
+

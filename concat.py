@@ -1,7 +1,7 @@
 import os
 
-base_dir = r'C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/src'
-output_file = 'src.txt'
+base_dir = r'C:/Users/lwhitaker/personal\SYSC4918\SYSC4918/sample_project'
+output_file = 'sample.txt'
 
 
 # Clear the output file before starting
